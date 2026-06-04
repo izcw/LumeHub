@@ -18,7 +18,9 @@
             "columns": "auto"
           },
           "itemSortBy": "sort",
-          "public": true
+          "public": true,
+          "apiEnabled": true,
+          "apiKeyHash": "5f951e2835eab840d716b8422839e2ed1b1ad567cc4f86b2237286406e69dd15"
         },
         {
           "id": 4,
@@ -32,7 +34,23 @@
           "itemSortBy": "uploaded_at",
           "public": false,
           "encrypted": true,
-          "encryptedPasswordHash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
+          "encryptedPasswordHash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+          "apiEnabled": true,
+          "apiKeyHash": "d909b0a0c79d50f665111a1520c8481879a29cb52435be96ec32b06470754f16"
+        },
+        {
+          "id": 5,
+          "sort": 3,
+          "name": "临时",
+          "folderKey": "linshi",
+          "layout": {
+            "mode": "grid",
+            "columns": "auto"
+          },
+          "itemSortBy": "uploaded_at",
+          "public": true,
+          "apiEnabled": true,
+          "apiKeyHash": "a3c7b9890fab34ccfc3aa5f593ef72a27f1a25454fa966ad50815a11328b5e79"
         }
       ]
     }

@@ -145,7 +145,7 @@ async function uploadVideoPosterIfNeeded(
       },
     )
   } catch {
-    /* 封面失败不影响主文件已入库 */
+    /* 封面失败不影响主文件已入�?*/
   }
 }
 
@@ -347,7 +347,6 @@ export async function patchCategoryItemWithFile(
     {
       signal: opts?.signal,
       timeout: 0,
-      headers: { 'Content-Type': 'multipart/form-data' },
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
     },

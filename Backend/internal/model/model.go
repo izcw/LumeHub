@@ -19,6 +19,10 @@ type Subcategory struct {
 	Encrypted bool `json:"encrypted,omitempty"`
 	// EncryptedPasswordHash 为查看密码的 SHA256 十六进制小写。
 	EncryptedPasswordHash string `json:"encryptedPasswordHash,omitempty"`
+	// APIEnabled indicates the public API is enabled for this gallery.
+	APIEnabled bool   `json:"apiEnabled,omitempty"`
+	// APIKeyHash is the SHA256 hex-lowercase hash of the public API key.
+	APIKeyHash string `json:"apiKeyHash,omitempty"`
 }
 
 // Category 大分类（其下为 Subcategory）

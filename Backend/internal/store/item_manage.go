@@ -1,4 +1,4 @@
-package store
+﻿package store
 
 import (
 	"io"
@@ -341,7 +341,16 @@ func (s *Store) PatchCategoryItem(folderKey, itemID string, in PatchCategoryItem
 		if len(data) == 0 {
 			return model.Item{}, os.ErrInvalid
 		}
-		if err := s.checkStorageQuotaUnlocked(int64(len(data))); err != nil {
+		// For replacements, only check the net additional bytes (new - old).
+		additionalBytes := int64(len(data))
+		if in.ReplaceOriginal {
+			oldSize := s.statResourceFileSize(folderKey, strings.TrimSpace(filepath.ToSlash(item.Filename)))
+			additionalBytes -= oldSize
+			if additionalBytes < 0 {
+				additionalBytes = 0
+			}
+		}
+		if err := s.checkStorageQuotaUnlocked(additionalBytes); err != nil {
 			return model.Item{}, err
 		}
 
@@ -360,6 +369,12 @@ func (s *Store) PatchCategoryItem(folderKey, itemID string, in PatchCategoryItem
 			if dstRel == "" {
 				return model.Item{}, os.ErrInvalid
 			}
+			// Replace-original: clear stale edited version so display uses the new original.
+			if oldEdited := strings.TrimSpace(item.EditedFilename); oldEdited != "" {
+				_ = os.Remove(filepath.Join(resourceDir, filepath.FromSlash(oldEdited)))
+				item.EditedFilename = ""
+			}
+			item.UseEdited = false
 		}
 
 		dstPath := filepath.Join(resourceDir, filepath.FromSlash(dstRel))

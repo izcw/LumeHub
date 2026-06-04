@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <Dialog
     :open="open"
     title="编辑资源"
@@ -1196,11 +1196,13 @@ const canRevertEdited = computed(() => Boolean(props.payload?.useEdited))
 
 /** 基本 / 导出页不显示关闭与应用编辑 */
 const showFooterCloseAndSave = computed(
-  () => activeTab.value !== 'basic' && activeTab.value !== 'export',
+  () =>
+    (activeTab.value !== 'basic' && activeTab.value !== 'export') ||
+    replaceFile.value != null,
 )
 
 const showContentFooter = computed(
-  () => showFooterCloseAndSave.value || canRevertEdited.value,
+  () => showFooterCloseAndSave.value || canRevertEdited.value || replaceFile.value != null,
 )
 
 function formatDate(iso?: string): string {
@@ -1229,6 +1231,7 @@ const infoRows = computed((): InfoRow[] => {
   const original = originalAbsoluteUrl.value || '—'
   const thumbnail = thumbnailAbsoluteUrl.value || '—'
   const rows: InfoRow[] = [
+    { label: 'ID', value: p?.itemId || '—' },
     { label: '分类', value: p?.categoryName?.trim() || p?.folderKey || '—' },
     { label: '类型', value: kind },
     { label: '格式', value: fmt, kind: 'tag' },

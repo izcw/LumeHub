@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <Dialog
     :open="profileModalOpen"
     :show-actions="false"
@@ -272,6 +272,17 @@
                   <template #cell-actions="{ row }">
                     <div class="table-actions">
                       <Button
+                        v-if="asPrivacyTableRow(row).scope === 'sub'"
+                        size="small"
+                        class="table-action-btn"
+                        type="info"
+                        native-type="button"
+                        @click="openAPIDialog(asPrivacyTableRow(row))"
+                      >
+                        API
+                      </Button>
+
+                      <Button
                         size="small"
                         class="table-action-btn"
                         type="info"
@@ -280,6 +291,7 @@
                       >
                         编辑
                       </Button>
+
                       <Popconfirm
                         :title="
                           asPrivacyTableRow(row).scope === 'major'
@@ -708,6 +720,283 @@
       <p v-if="accountAddError" class="inline-dialog-error">{{ accountAddError }}</p>
     </div>
   </Dialog>
+
+  <Dialog
+    :open="apiDialogVisible"
+    :title="'API管理 - ' + apiDialogTitle"
+    :show-actions="false"
+    :body-padded="true"
+    :z-index="2700"
+    width="520px"
+    height="580px"
+    @close="onAPIDialogClose"
+  >
+    <div class="api-dialog">
+      <div class="api-dialog__row">
+        <span class="api-dialog__row-label">启用 API</span>
+        <ToggleSwitch
+          :model-value="apiDialogEnabled"
+          :disabled="apiDialogSaving"
+          :label="apiDialogEnabled ? '已开启' : '已关闭'"
+          @update:model-value="onAPIToggle"
+        />
+      </div>
+
+      <template v-if="apiDialogEnabled">
+        <div class="api-dialog__section">
+          <p class="api-dialog__section-title">API Key</p>
+          <div class="api-dialog__keybox">
+            <code v-if="apiDialogKey" class="api-dialog__keyval">{{ apiDialogKey }}</code>
+            <span v-else class="api-dialog__keyph">正在生成密钥...</span>
+          </div>
+          <div class="api-dialog__btns">
+            <Button
+              size="small"
+              type="info"
+              native-type="button"
+              :disabled="apiDialogSaving"
+              @click="onAPIRefreshKey"
+            >
+              {{ apiDialogSaving ? '处理中...' : '重新生成' }}
+            </Button>
+            <Button
+              size="small"
+              native-type="button"
+              :disabled="apiDialogSaving || !apiDialogKey"
+              @click="copyAPIKey"
+              >复制 Key</Button
+            >
+          </div>
+          <p class="api-dialog__warn">重新生成后旧密钥将立即失效。</p>
+        </div>
+
+        <div class="api-dialog__section">
+          <p class="api-dialog__section-title">认证方式</p>
+          <div class="api-dialog__auth">
+            <code>Authorization: Bearer &lt;key&gt;</code>
+            <code>X-API-Key: &lt;key&gt;</code>
+            <code>?api_key=&lt;key&gt;</code>
+          </div>
+        </div>
+
+        <div class="api-dialog__section">
+          <p class="api-dialog__section-title">API 接口</p>
+          <div class="api-dialog__table">
+            <div class="api-dialog__tr" @click="copyEndpoint('')">
+              <span class="api-badge api-badge--get">GET</span>
+              <code>/api/v1/{{ apiDialogFolderKey }}</code>
+              <span class="api-dialog__tr-desc">获取所有文件</span>
+            </div>
+            <div class="api-dialog__tr" @click="copyEndpoint('/{id}')">
+              <span class="api-badge api-badge--get">GET</span>
+              <code>/api/v1/{{ apiDialogFolderKey }}/{id}</code>
+              <span class="api-dialog__tr-desc">按 ID 查询</span>
+            </div>
+            <div class="api-dialog__tr" @click="copyEndpoint('')">
+              <span class="api-badge api-badge--post">POST</span>
+              <code>/api/v1/{{ apiDialogFolderKey }}</code>
+              <span class="api-dialog__tr-desc">上传文件</span>
+            </div>
+            <div class="api-dialog__tr" @click="copyEndpoint('/{id}')">
+              <span class="api-badge api-badge--put">PUT</span>
+              <code>/api/v1/{{ apiDialogFolderKey }}/{id}</code>
+              <span class="api-dialog__tr-desc">按 ID 替换文件</span>
+            </div>
+            <div class="api-dialog__tr" @click="copyEndpoint('/{id}')">
+              <span class="api-badge api-badge--del">DEL</span>
+              <code>/api/v1/{{ apiDialogFolderKey }}/{id}</code>
+              <span class="api-dialog__tr-desc">按 ID 删除</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="api-dialog__section">
+          <p class="api-dialog__section-title">使用说明</p>
+
+          <DetailsCollapse summary="GET &mdash; 获取文件列表">
+            <p class="api-dialog__doc-text">获取画廊中的所有文件。返回文件数组及总数。</p>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">请求</p>
+              <pre class="api-dialog__code"><code>curl -H "Authorization: Bearer YOUR_KEY" \
+  {{ apiBaseURL() }}</code></pre>
+            </div>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">响应</p>
+              <pre class="api-dialog__code"><code>{
+  "code": 200,
+  "message": "ok",
+  "data": {
+    "items": [
+      {
+        "id": "a46a81eaa861_20260604",
+        "original": "/resource/.../original/a46a81eaa861_20260604.jpg",
+        "thumbnail": "/resource/.../thumb/a46a81eaa861_20260604.jpg",
+        "title": "...",
+        "tags": ["jpg"],
+        "format": "jpg",
+        "mediaKind": "image",
+        "fileSize": 6174145,
+        "uploadedAt": "2026-06-04T16:24:44Z"
+      }
+    ],
+    "total": 1
+  }
+}</code></pre>
+            </div>
+          </DetailsCollapse>
+
+          <DetailsCollapse summary="GET &mdash; 按 ID 查询单个文件">
+            <p class="api-dialog__doc-text">根据文件 ID 查询单个文件详情。</p>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">请求</p>
+              <pre class="api-dialog__code"><code>curl -H "Authorization: Bearer YOUR_KEY" \
+  {{ apiBaseURL() }}/ITEM_ID</code></pre>
+            </div>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">响应</p>
+              <pre class="api-dialog__code"><code>{
+  "code": 200,
+  "message": "ok",
+  "data": {
+    "id": "a46a81eaa861_20260604",
+    "original": "/resource/.../original/a46a81eaa861_20260604.jpg",
+    "thumbnail": "/resource/.../thumb/a46a81eaa861_20260604.jpg",
+    "title": "...",
+    "tags": ["jpg"],
+    "format": "jpg",
+    "mediaKind": "image",
+    "fileSize": 6174145,
+    "uploadedAt": "2026-06-04T16:24:44Z"
+  }
+}</code></pre>
+            </div>
+          </DetailsCollapse>
+
+          <DetailsCollapse summary="POST &mdash; 上传文件">
+            <p class="api-dialog__doc-text">上传文件到画廊。使用 multipart/form-data 格式。</p>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">请求</p>
+              <pre class="api-dialog__code"><code>curl -X POST -H "Authorization: Bearer YOUR_KEY" \
+  -F "file=@photo.jpg" \
+  -F "title=My Photo" \
+  -F "tags=cat,cute" \
+  {{ apiBaseURL() }}</code></pre>
+            </div>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">参数说明</p>
+              <div class="api-dialog__params">
+                <div class="api-dialog__param">
+                  <code>file</code>
+                  <span class="api-dialog__param-tag">必填</span>
+                  <span>上传的文件</span>
+                </div>
+                <div class="api-dialog__param">
+                  <code>title</code>
+                  <span class="api-dialog__param-tag api-dialog__param-tag--opt">可选</span>
+                  <span>文件标题</span>
+                </div>
+                <div class="api-dialog__param">
+                  <code>tags</code>
+                  <span class="api-dialog__param-tag api-dialog__param-tag--opt">可选</span>
+                  <span>标签，逗号分隔</span>
+                </div>
+                <div class="api-dialog__param">
+                  <code>linkName</code>
+                  <span class="api-dialog__param-tag api-dialog__param-tag--opt">可选</span>
+                  <span>自定义短链接名</span>
+                </div>
+              </div>
+            </div>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">响应</p>
+              <pre class="api-dialog__code"><code>{
+  "code": 201,
+  "message": "created",
+  "data": {
+    "id": "b7f3d2c1e4a0_20260605",
+    "original": "/resource/.../original/b7f3d2c1e4a0_20260605.jpg",
+    "title": "My Photo",
+    "tags": ["cat", "cute"],
+    "linkName": "b7f3d2c1e4a0_20260605.jpg",
+    ...
+  }
+}</code></pre>
+            </div>
+          </DetailsCollapse>
+
+          <DetailsCollapse summary="PUT &mdash; 按 ID 替换文件">
+            <p class="api-dialog__doc-text">
+              替换指定文件的原图，同时可更新元数据。使用 multipart/form-data 格式。
+            </p>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">请求</p>
+              <pre class="api-dialog__code"><code>curl -X PUT -H "Authorization: Bearer YOUR_KEY" \
+  -F "file=@new-photo.jpg" \
+  -F "title=Updated Title" \
+  {{ apiBaseURL() }}/ITEM_ID</code></pre>
+            </div>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">参数说明</p>
+              <div class="api-dialog__params">
+                <div class="api-dialog__param">
+                  <code>file</code>
+                  <span class="api-dialog__param-tag">必填</span>
+                  <span>替换的新文件</span>
+                </div>
+                <div class="api-dialog__param">
+                  <code>title</code>
+                  <span class="api-dialog__param-tag api-dialog__param-tag--opt">可选</span>
+                  <span>更新标题</span>
+                </div>
+                <div class="api-dialog__param">
+                  <code>tags</code>
+                  <span class="api-dialog__param-tag api-dialog__param-tag--opt">可选</span>
+                  <span>更新标签，逗号分隔</span>
+                </div>
+                <div class="api-dialog__param">
+                  <code>linkName</code>
+                  <span class="api-dialog__param-tag api-dialog__param-tag--opt">可选</span>
+                  <span>更新短链接名</span>
+                </div>
+              </div>
+            </div>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">响应</p>
+              <pre class="api-dialog__code"><code>{
+  "code": 200,
+  "message": "ok",
+  "data": {
+    "id": "a46a81eaa861_20260604",
+    "original": "/resource/.../original/a46a81eaa861_20260604.jpg",
+    "title": "Updated Title",
+    ...
+  }
+}</code></pre>
+            </div>
+          </DetailsCollapse>
+
+          <DetailsCollapse summary="DELETE &mdash; 按 ID 删除文件">
+            <p class="api-dialog__doc-text">删除指定文件（移入回收站）。</p>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">请求</p>
+              <pre
+                class="api-dialog__code"
+              ><code>curl -X DELETE -H "Authorization: Bearer YOUR_KEY" \
+  {{ apiBaseURL() }}/ITEM_ID</code></pre>
+            </div>
+            <div class="api-dialog__doc-group">
+              <p class="api-dialog__doc-label">响应</p>
+              <pre class="api-dialog__code"><code>{
+  "code": 200,
+  "message": "ok",
+  "data": { "ok": true }
+}</code></pre>
+            </div>
+          </DetailsCollapse>
+        </div>
+      </template>
+    </div>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -741,11 +1030,13 @@ import {
   patchCategoriesNames,
   patchCategoriesSubMajor,
   patchCategoriesVisibility,
+  patchCategoryAPISettings,
   postCategorySub,
   type CategoryFolderKeyPatch,
   type CategoryNamePatch,
   type CategorySubMajorPatch,
   type CategoryVisibilityPatch,
+  type CategoryAPISettingsPatch,
 } from '@/api/adminApi'
 import {
   fetchPasskeyList,
@@ -768,9 +1059,11 @@ import {
 } from '@/utils/galleryAccess'
 import Button from '@/components/shared-ui/Button.vue'
 import Checkbox from '@/components/shared-ui/Checkbox.vue'
+import DetailsCollapse from '@/components/shared-ui/DetailsCollapse.vue'
 import Dialog from '@/components/shared-ui/Dialog.vue'
 import Input from '@/components/shared-ui/Input.vue'
 import Popconfirm from '@/components/shared-ui/Popconfirm.vue'
+import ToggleSwitch from '@/components/shared-ui/ToggleSwitch.vue'
 import Select from '@/components/shared-ui/Select.vue'
 import Table from '@/components/shared-ui/Table.vue'
 import StoragePieChart from '@/components/shared-ui/StoragePieChart.vue'
@@ -981,10 +1274,194 @@ const privacyTableColumns = [
   { key: 'type', title: '类型', width: 80, align: 'left' as const },
   { key: 'folderKey', title: '目录键', width: 120, ellipsis: true },
   { key: 'policyLabel', title: '访问策略', width: 120, ellipsis: true },
-  { key: 'actions', title: '操作', width: 120, fixed: 'right' as const, align: 'center' as const },
+  { key: 'actions', title: '操作', width: 180, fixed: 'right' as const, align: 'right' as const },
 ]
 
 const deletingCategory = ref(false)
+// --- API Settings Dialog ---
+const LS_PREFIX = 'lh_api_key_'
+const apiDialogVisible = ref(false)
+const apiDialogMajorId = ref(0)
+const apiDialogSubId = ref(0)
+const apiDialogFolderKey = ref('')
+const apiDialogTitle = ref('')
+const apiDialogEnabled = ref(false)
+const apiDialogHasKey = ref(false)
+const apiDialogKey = ref('')
+const apiDialogSaving = ref(false)
+
+function apiKeyLS(fk: string) {
+  return LS_PREFIX + fk
+}
+function saveKeyLS(fk: string, key: string) {
+  try {
+    localStorage.setItem(apiKeyLS(fk), key)
+  } catch {}
+}
+function loadKeyLS(fk: string): string {
+  try {
+    return localStorage.getItem(apiKeyLS(fk)) || ''
+  } catch {
+    return ''
+  }
+}
+function removeKeyLS(fk: string) {
+  try {
+    localStorage.removeItem(apiKeyLS(fk))
+  } catch {}
+}
+
+function apiBaseURL() {
+  return window.location.origin + '/api/v1/' + apiDialogFolderKey.value
+}
+
+async function openAPIDialog(row: PrivacyTableRow) {
+  if (!row.subRef) return
+  apiDialogMajorId.value = row.majorRef.id
+  apiDialogSubId.value = row.subRef.id
+  apiDialogFolderKey.value = row.folderKey
+  apiDialogTitle.value = row.name
+  apiDialogHasKey.value = !!row.subRef.apiKeyHash
+  apiDialogKey.value = ''
+  apiDialogSaving.value = false
+
+  if (row.subRef.apiEnabled) {
+    apiDialogEnabled.value = true
+    apiDialogVisible.value = true
+    const cached = loadKeyLS(row.folderKey)
+    if (cached) {
+      apiDialogKey.value = cached
+    } else {
+      // No cached key - generate one automatically
+      await generateKeyForCurrentDialog()
+    }
+  } else {
+    apiDialogEnabled.value = false
+    apiDialogVisible.value = true
+  }
+}
+
+async function generateKeyForCurrentDialog() {
+  apiDialogSaving.value = true
+  try {
+    const patches: CategoryAPISettingsPatch[] = [
+      {
+        majorId: apiDialogMajorId.value,
+        subId: apiDialogSubId.value,
+        refreshKey: true,
+      },
+    ]
+    const res = await patchCategoryAPISettings(patches)
+    const newKey = res.newKeys[apiDialogMajorId.value + '_' + apiDialogSubId.value]
+    if (newKey) {
+      apiDialogKey.value = newKey
+      apiDialogHasKey.value = true
+      saveKeyLS(apiDialogFolderKey.value, newKey)
+    }
+    await categoryNav.reloadFromServer()
+  } catch (e: any) {
+    localError.value = parseApiErrorMessage(e, '密钥生成失败')
+  } finally {
+    apiDialogSaving.value = false
+  }
+}
+
+async function onAPIToggle(val: boolean) {
+  apiDialogSaving.value = true
+  try {
+    const needKey = val && !apiDialogHasKey.value
+    const patches: CategoryAPISettingsPatch[] = [
+      {
+        majorId: apiDialogMajorId.value,
+        subId: apiDialogSubId.value,
+        enabled: val,
+        refreshKey: needKey,
+      },
+    ]
+    const res = await patchCategoryAPISettings(patches)
+    const newKey = res.newKeys[apiDialogMajorId.value + '_' + apiDialogSubId.value]
+    if (newKey) {
+      apiDialogKey.value = newKey
+      apiDialogHasKey.value = true
+      saveKeyLS(apiDialogFolderKey.value, newKey)
+    }
+    apiDialogEnabled.value = val
+    if (!val) {
+      removeKeyLS(apiDialogFolderKey.value)
+      apiDialogKey.value = ''
+      apiDialogHasKey.value = false
+    }
+    await categoryNav.reloadFromServer()
+    successMsg.value = val ? 'API 已开启' : 'API 已关闭'
+  } catch (e: any) {
+    apiDialogEnabled.value = !val
+    localError.value = parseApiErrorMessage(e, '操作失败')
+  } finally {
+    apiDialogSaving.value = false
+  }
+}
+
+async function onAPIRefreshKey() {
+  await generateKeyForCurrentDialog()
+  successMsg.value = 'API Key 已刷新，请妥善保管新密钥'
+}
+
+function onAPIDialogClose() {
+  apiDialogVisible.value = false
+}
+
+function copyText(text: string, msg?: string) {
+  if (!text) return
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0'
+  document.body.appendChild(ta)
+  ta.select()
+  try {
+    document.execCommand('copy')
+    successMsg.value = msg || '已复制'
+  } catch {
+    localError.value = '复制失败，请手动复制'
+  } finally {
+    document.body.removeChild(ta)
+  }
+}
+
+function copyEndpoint(suffix: string) {
+  copyText(apiBaseURL() + suffix, '已复制 ' + suffix)
+}
+
+function copyAPIKey() {
+  copyText(apiDialogKey.value, 'API Key 已复制')
+}
+const apiSnippets = computed(() => {
+  const base = apiBaseURL()
+  const key = apiDialogKey.value || 'YOUR_KEY'
+  const nl = '\n'
+  return [
+    {
+      title: '获取所有文件',
+      code: 'curl -H "Authorization: Bearer ' + key + '" \\' + nl + '  ' + base,
+    },
+    {
+      title: '上传文件',
+      code:
+        'curl -X POST -H "Authorization: Bearer ' +
+        key +
+        '" \\' +
+        nl +
+        '  -F "file=@photo.jpg" \\' +
+        nl +
+        '  ' +
+        base,
+    },
+    {
+      title: '按 ID 删除',
+      code:
+        'curl -X DELETE -H "Authorization: Bearer ' + key + '" \\' + nl + '  ' + base + '/ITEM_ID',
+    },
+  ]
+})
 
 const privacyTableRows = computed<PrivacyTableRow[]>(() =>
   sortedMajorsForNav.value.map((major) => ({
@@ -1184,7 +1661,10 @@ function initNavDraft() {
   navDraft.value = JSON.parse(JSON.stringify(categoryNav.doc)) as ApiCategoriesDoc
 }
 
-function folderKeysForVisibilityPatch(doc: ApiCategoriesDoc, patch: CategoryVisibilityPatch): string[] {
+function folderKeysForVisibilityPatch(
+  doc: ApiCategoriesDoc,
+  patch: CategoryVisibilityPatch,
+): string[] {
   if (patch.scope === 'sub' && patch.subId != null) {
     const major = doc.categories.find((item) => item.id === patch.majorId)
     const sub = major?.subcategories.find((item) => item.id === patch.subId)
@@ -1219,9 +1699,7 @@ async function persistNavPatch(patch: CategoryVisibilityPatch) {
     categoryNav.replaceDoc(out)
     navDraft.value = JSON.parse(JSON.stringify(out)) as ApiCategoriesDoc
     notifyFolderViewCredentialChanged(out, patch)
-    successMsg.value = patch.encryptedPassword?.trim()
-      ? '查看密码已更新'
-      : '目录策略已保存'
+    successMsg.value = patch.encryptedPassword?.trim() ? '查看密码已更新' : '目录策略已保存'
   } catch (e: unknown) {
     localError.value = e instanceof Error ? e.message : '保存失败'
     initNavDraft()
@@ -2046,7 +2524,11 @@ async function savePrivacyEditDialog() {
       sortedMajorsForNav.value
         .find((item) => item.id === effectiveMajorId)
         ?.subcategories.find((item) => item.id === subId) ?? sub
-    if (privacyEditIsEncryptedPolicy.value && !subAfterMove.encryptedPasswordHash?.trim() && !nextPwd) {
+    if (
+      privacyEditIsEncryptedPolicy.value &&
+      !subAfterMove.encryptedPasswordHash?.trim() &&
+      !nextPwd
+    ) {
       privacyEditError.value = '请填写查看密码（至少 4 位）'
       return
     }
@@ -3283,5 +3765,292 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 600;
   color: #000;
+}
+
+/* --- API Dialog --- */
+.api-dialog {
+  margin-bottom: 20px;
+  &__fk {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #f7f7f6;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #999;
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #444;
+    }
+  }
+  &__fk-label {
+    flex-shrink: 0;
+  }
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 16px;
+  }
+  &__row-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+  }
+  &__section {
+    margin-bottom: 18px;
+  }
+  &__section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #666;
+    margin: 0 0 8px;
+    line-height: 20px;
+  }
+  &__keybox {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 10px 12px;
+    min-height: 18px;
+    margin-bottom: 10px;
+  }
+  &__keyval {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    color: #111;
+    word-break: break-all;
+    line-height: 18px;
+    display: block;
+    user-select: all;
+    cursor: text;
+  }
+  &__keyph {
+    font-size: 12px;
+    color: #ccc;
+    line-height: 18px;
+  }
+  &__btns {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  &__warn {
+    margin: 0;
+    font-size: 12px;
+    color: #92600a;
+    line-height: 18px;
+  }
+  &__table {
+    border: 1px solid #eee;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  &__tr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    font-size: 12px;
+    line-height: 20px;
+    background: #fff;
+    cursor: pointer;
+    transition: background 0.1s;
+    &:hover {
+      background: #f7f7f6;
+    }
+    &:nth-child(even) {
+      background: #fafafa;
+      &:hover {
+        background: #f3f3f1;
+      }
+    }
+    &:not(:last-child) {
+      border-bottom: 1px solid #f0f0f0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: #333;
+    }
+  }
+  &__tr-desc {
+    font-size: 11px;
+    color: #bbb;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  &__auth {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: #555;
+      background: #f7f7f6;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #eee;
+      line-height: 18px;
+    }
+  }
+  &__tutorial {
+    margin-top: 4px;
+  }
+  &__snippet {
+    margin-bottom: 10px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  &__snippet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  &__snippet-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+  }
+  &__snippet-copy {
+    font-size: 11px;
+    color: #888;
+    cursor: pointer;
+    &:hover {
+      color: #333;
+    }
+  }
+  &__doc {
+    margin-bottom: 14px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  &__doc-heading {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 4px;
+    line-height: 22px;
+  }
+  &__doc-text {
+    font-size: 12px;
+    color: #888;
+    margin: 0 0 10px;
+    line-height: 18px;
+  }
+  &__doc-group {
+    margin-bottom: 10px;
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  &__doc-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #999;
+    margin: 0 0 4px;
+    line-height: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  &__code {
+    margin: 0;
+    padding: 10px 12px;
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    overflow-x: auto;
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: #333;
+      line-height: 20px;
+      white-space: pre;
+    }
+  }
+  &__params {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  &__param {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #666;
+    line-height: 20px;
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: #333;
+      background: #f5f5f3;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid #eee;
+    }
+  }
+  &__param-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #dc2626;
+    color: #fff;
+    flex-shrink: 0;
+    &--opt {
+      background: #999;
+    }
+  }
+  &__snippet-code {
+    margin: 0;
+    padding: 10px 12px;
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    overflow-x: auto;
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: #333;
+      line-height: 20px;
+      white-space: pre;
+    }
+  }
+}
+.api-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: #fff;
+  flex-shrink: 0;
+  min-width: 36px;
+  text-align: center;
+  line-height: 18px;
+  &--get {
+    background: #3b82f6;
+  }
+  &--post {
+    background: #16a34a;
+  }
+  &--put {
+    background: #8b5cf6;
+  }
+  &--del {
+    background: #dc2626;
+  }
 }
 </style>

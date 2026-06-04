@@ -71,6 +71,8 @@ export type ApiSubcategory = {
   encrypted?: boolean
   /** 查看密码的 SHA256 哈希（由服务端管理，仅用于判断是否已设置） */
   encryptedPasswordHash?: string
+  apiEnabled?: boolean
+  apiKeyHash?: string
 }
 
 /** 大分类；其下 subcategories 为二级（对应 resource/{folderKey}） */
@@ -83,6 +85,8 @@ export type ApiCategoryGroup = {
   public?: boolean
   encrypted?: boolean
   encryptedPasswordHash?: string
+  apiEnabled?: boolean
+  apiKeyHash?: string
   subcategories: ApiSubcategory[]
 }
 

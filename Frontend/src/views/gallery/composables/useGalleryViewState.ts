@@ -76,6 +76,13 @@ const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 150
 
+/** Append ?_t=updatedAt for cache-busting after file replacement */
+function appendCacheBust(u: string, updatedAt?: string): string {
+  if (!u || !updatedAt) return u
+  return u + (u.includes('?') ? '&' : '?') + '_t=' + encodeURIComponent(updatedAt)
+}
+
+
 const NEW_ITEM_STYLE_BY_BATCH_INDEX: ReadonlyArray<Readonly<Record<string, string>>> = Array.from(
   { length: MAX_PAGE_SIZE },
   (_, batchIndex) => Object.freeze({ animationDelay: `${batchIndex * 0.05}s` }),
@@ -157,7 +164,7 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
         for (const it of detail.items) {
           rows.push({
             id: `${fk}:${it.id}`,
-            url: authStore.appendAccessToResourceUrl(it.url),
+            url: appendCacheBust(authStore.appendAccessToResourceUrl(it.url), it.updatedAt),
             shortUrl: it.shortUrl ? authStore.appendAccessToResourceUrl(it.shortUrl) : undefined,
             linkName: it.linkName,
             originalUrl: it.originalUrl
@@ -173,7 +180,7 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
               : undefined,
             categoryName: detail.name,
             thumbnailUrl: it.thumbnailUrl
-              ? authStore.appendAccessToResourceUrl(it.thumbnailUrl)
+              ? appendCacheBust(authStore.appendAccessToResourceUrl(it.thumbnailUrl), it.updatedAt)
               : undefined,
             title: it.title,
             tags: it.tags,
@@ -1409,7 +1416,7 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
       categoryDisplayName.value = detail.name
       picRows.value = detail.items.map((it) => ({
         id: it.id,
-        url: authStore.appendAccessToResourceUrl(it.url),
+        url: appendCacheBust(authStore.appendAccessToResourceUrl(it.url), it.updatedAt),
         shortUrl: it.shortUrl ? authStore.appendAccessToResourceUrl(it.shortUrl) : undefined,
         linkName: it.linkName,
         originalUrl: it.originalUrl ? authStore.appendAccessToResourceUrl(it.originalUrl) : undefined,
@@ -1423,7 +1430,7 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
           : undefined,
         categoryName: detail.name,
         thumbnailUrl: it.thumbnailUrl
-          ? authStore.appendAccessToResourceUrl(it.thumbnailUrl)
+          ? appendCacheBust(authStore.appendAccessToResourceUrl(it.thumbnailUrl), it.updatedAt)
           : undefined,
         title: it.title,
         tags: it.tags,

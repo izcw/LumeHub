@@ -168,3 +168,24 @@ export async function recalculateStorage(): Promise<ApiStorageStatus> {
   const { data } = await http.post<ApiStorageStatus>('/api/storage/recalculate')
   return data
 }
+
+// --- API Settings ---
+
+export type CategoryAPISettingsPatch = {
+  majorId: number
+  subId: number
+  enabled?: boolean
+  refreshKey?: boolean
+}
+
+export type CategoryAPISettingsResult = {
+  ok: boolean
+  newKeys: Record<string, string>
+}
+
+export async function patchCategoryAPISettings(
+  patches: CategoryAPISettingsPatch[],
+): Promise<CategoryAPISettingsResult> {
+  const { data } = await http.patch<CategoryAPISettingsResult>('/api/categories/api-settings', { patches })
+  return data
+}
