@@ -1,0 +1,59 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.zip
+
+# 用户图片库（体积大，部署时单独同步）
+Backend/data/resource/
+
+# Go 构建产物
+Backend/lumehub
+Backend/lumehub.exe
+Backend/lumehub-test.exe
+Backend/*.exe
+Backend/dist/
+
+# 发版 / 部署本地配置
+release/
+Backend/deploy.env
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python（历史遗留）
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+
+# Node frontend
+node_modules/
+.pnpm-store/
+dist/
+.vite/
+coverage/
+
+# Build / cache
+build/
+tmp/
+temp/
+.cache/
