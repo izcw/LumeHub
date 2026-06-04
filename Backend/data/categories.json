@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "categories": [
+    {
+      "id": 100,
+      "sort": 1,
+      "name": "浏览",
+      "key": "liulan",
+      "public": true,
+      "subcategories": [
+        {
+          "id": 0,
+          "sort": 1,
+          "name": "kasumi_arimura",
+          "folderKey": "kasumi",
+          "layout": {
+            "mode": "masonry",
+            "columns": "auto"
+          },
+          "itemSortBy": "sort",
+          "public": true
+        },
+        {
+          "id": 4,
+          "sort": 2,
+          "name": "摄影",
+          "folderKey": "camera",
+          "layout": {
+            "mode": "masonry",
+            "columns": "auto"
+          },
+          "itemSortBy": "uploaded_at",
+          "public": false,
+          "encrypted": true,
+          "encryptedPasswordHash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
+        }
+      ]
+    }
+  ]
+}

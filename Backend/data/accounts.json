@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "guestAvatarUrl": "/resource/system/guest.svg",
+  "loggedInFallbackAvatarUrl": "/resource/system/user-default.svg",
+  "accounts": [
+    {
+      "id": "0",
+      "username": "admin",
+      "email": "izcw@qq.com",
+      "passwordHash": "36c127595eba5886c1efcb9b89bbe44f1b845b5c4610aee70cae253c3047d707",
+      "displayName": "izcw",
+      "avatar": "/api/avatar/0",
+      "roles": [
+        "admin"
+      ],
+      "permissions": [
+        "manage_layout",
+        "manage_accounts"
+      ]
+    }
+  ]
+}

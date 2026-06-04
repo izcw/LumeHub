@@ -1,0 +1,164 @@
+.viewer-chrome {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10002;
+}
+
+.viewer-close,
+.viewer-nav {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  z-index: 10;
+  transition: background 0.2s ease;
+
+  img {
+    display: block;
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
+  }
+}
+
+.viewer-close:hover,
+.viewer-nav:hover {
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.viewer-close {
+  top: 1rem;
+  right: 1rem;
+
+  img {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.viewer-prev {
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.viewer-next {
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  img {
+    transform: scaleX(-1);
+  }
+}
+
+.viewer-nav {
+  opacity: 1;
+  transition:
+    background 0.2s ease,
+    opacity 0.22s ease;
+}
+
+.viewer-nav.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.viewer-bottom-bar {
+  position: absolute;
+  bottom: 32px;
+  right: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  max-width: calc(100% - 56px);
+  pointer-events: none;
+}
+
+.viewer-toolbar {
+  pointer-events: auto;
+  flex-shrink: 1;
+  min-width: 0;
+  opacity: 1;
+  transition: opacity 0.22s ease;
+
+  &.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.viewer-counter {
+  position: static;
+  flex-shrink: 0;
+  color: #000;
+  font-size: 14px;
+  font-weight: 400;
+  pointer-events: none;
+}
+
+.viewer-type-badge {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  flex-shrink: 0;
+  pointer-events: none;
+
+  :slotted(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  }
+
+  /* 兼容 slot 内仍包一层 .viewer-type-badge 的旧写法 */
+  :slotted(.viewer-type-badge) {
+    position: static;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .viewer-nav {
+    display: none;
+  }
+
+  .viewer-close img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .viewer-bottom-bar {
+    bottom: 24px;
+    right: 16px;
+    max-width: calc(100% - 32px);
+    gap: 10px;
+  }
+}
