@@ -345,11 +345,22 @@ function collapseTools() {
 
 function onDocPointerdownGalleryToolbars(e: PointerEvent) {
   const target = e.target as Element | null
+  const targetNode = e.target as Node | null
+  const insideColumnMenu = Boolean(
+    (columnPickerRef.value?.rootEl && targetNode && columnPickerRef.value.rootEl.contains(targetNode)) ||
+      (columnPickerRef.value?.panelEl && targetNode && columnPickerRef.value.panelEl.contains(targetNode)),
+  )
+  const insideItemSortMenu = Boolean(
+    (itemSortPickerRef.value?.rootEl && targetNode && itemSortPickerRef.value.rootEl.contains(targetNode)) ||
+      (itemSortPickerRef.value?.panelEl && targetNode && itemSortPickerRef.value.panelEl.contains(targetNode)),
+  )
   if (
     toolsExpanded.value &&
     !dragSortEditEnabled.value &&
     !toolsPanelRef.value?.contains(target) &&
-    !target?.closest('.gallery-tools-toggle-btn')
+    !target?.closest('.gallery-tools-toggle-btn') &&
+    !insideColumnMenu &&
+    !insideItemSortMenu
   ) {
     collapseTools()
     return

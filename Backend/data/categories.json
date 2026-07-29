@@ -14,10 +14,11 @@
           "name": "kasumi_arimura",
           "folderKey": "kasumi",
           "layout": {
-            "mode": "masonry",
-            "columns": "3"
+            "mode": "grid",
+            "columns": "auto",
+            "pageSize": 21
           },
-          "itemSortBy": "sort",
+          "itemSortBy": "uploaded_at",
           "public": true,
           "apiEnabled": true,
           "apiKeyHash": "5f951e2835eab840d716b8422839e2ed1b1ad567cc4f86b2237286406e69dd15"

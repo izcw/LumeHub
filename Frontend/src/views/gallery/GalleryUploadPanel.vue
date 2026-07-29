@@ -207,7 +207,7 @@ defineExpose({
 
 .upload-float-panel {
   position: fixed;
-  z-index: 2200;
+  z-index: 999;
   transform-origin: bottom right;
   border-radius: 14px;
   background: linear-gradient(152deg, rgba(255, 255, 255, 0.9) 0%, rgba(249, 249, 255, 0.93) 100%);
