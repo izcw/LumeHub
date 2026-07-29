@@ -29,6 +29,7 @@ import {
 import {
   fetchCategoryDetail,
   postCategoryViewUnlock,
+  patchCategoryLayout,
   patchCategoryItemOrder,
   deleteCategoryItem,
   transferCategoryItem,
@@ -73,25 +74,6 @@ const CARD_INTRO_ANIM_SEC = 0.45
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 150
-const PAGE_SIZE_STORAGE_KEY = 'lumehub-gallery-page-size'
-
-function readStoredPageSize(): number {
-  try {
-    const raw = localStorage.getItem(PAGE_SIZE_STORAGE_KEY)
-    const value = Number(raw)
-    return Number.isInteger(value) && value > 0 && value <= MAX_PAGE_SIZE ? value : DEFAULT_PAGE_SIZE
-  } catch {
-    return DEFAULT_PAGE_SIZE
-  }
-}
-
-function persistPageSize(size: number) {
-  try {
-    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(size))
-  } catch {
-    /* ignore */
-  }
-}
 
 /** Append ?_t=updatedAt for cache-busting after file replacement */
 function appendCacheBust(u: string, updatedAt?: string): string {
@@ -111,7 +93,8 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
   const picRows = shallowRef<GalleryRemoteRow[]>([])
   const categoryDisplayName = ref('')
 
-  const pageSize = ref<number>(readStoredPageSize())
+  const pageSize = ref<number>(DEFAULT_PAGE_SIZE)
+  let pageSizeHydrating = false
   const pageSizeMenuOpen = ref(false)
   const gridColumnCount = ref(0)
   const gridRowsPerScreen = ref(0)
@@ -122,12 +105,13 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
       gridColumnCount.value > 0 &&
       gridRowsPerScreen.value > 0
     ) {
-      return buildGridPageSizeOptions(gridColumnCount.value, gridRowsPerScreen.value).map(
-        (size) => ({
-          value: String(size),
-          label: String(size),
-        }),
+      const sizes = buildGridPageSizeOptions(gridColumnCount.value, gridRowsPerScreen.value).filter(
+        (size) => size <= MAX_PAGE_SIZE,
       )
+      return (sizes.length > 0 ? sizes : [DEFAULT_PAGE_SIZE]).map((size) => ({
+        value: String(size),
+        label: String(size),
+      }))
     }
     return PAGE_SIZE_OPTIONS.map((size) => ({
       value: String(size),
@@ -317,9 +301,13 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
 
   const canPrev = computed(() => currentPage.value > 1 && totalPages.value > 0)
   const canNext = computed(() => currentPage.value < totalPages.value)
-  const showPagination = computed(
-    () => totalPages.value > 0 && waterfallStageVisible.value && waterfallRendered.value,
-  )
+  const showPagination = computed(() => {
+    if (totalPages.value <= 0 || !waterfallStageVisible.value) return false
+    // Card layout has no layout-settled event, so waterfallRendered never
+    // becomes true there. Its pagination is ready once the card list is visible.
+    if (galleryLayoutMode.value === 'card') return true
+    return waterfallRendered.value
+  })
   const canDragSort = computed(
     () =>
       !isGlobalSearchView.value &&
@@ -489,9 +477,10 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
 
   watch(pageSize, () => {
     pageSizeMenuOpen.value = false
-    persistPageSize(pageSize.value)
+    if (pageSizeHydrating || isGlobalSearchView.value) return
+    void persistPageSizeToCategory(pageSize.value)
     void loadPage(1)
-  })
+  }, { flush: 'sync' })
 
   watch(showPagination, (visible) => {
     if (!visible) pageSizeMenuOpen.value = false
@@ -513,6 +502,36 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     const allowed = pageSizeSelectOptions.value.map((opt) => Number(opt.value))
     if (!allowed.includes(next)) return
     pageSize.value = next
+  }
+
+  async function persistPageSizeToCategory(size: number) {
+    const fk = folderKey.value.trim()
+    if (!fk) return
+    // The layout endpoint is protected when account authentication is enabled.
+    // Drag-sort editing is normally only exposed to authenticated users, but
+    // this guard also covers stale UI state and auth status transitions.
+    if (authStore.authConfigured && !authStore.authenticated) return
+    const columns = columnChoice.value === 'auto' ? 'auto' : String(columnChoice.value)
+    try {
+      await patchCategoryLayout(fk, {
+        mode: galleryLayoutMode.value,
+        columns: columns as 'auto' | '1' | '2' | '3' | '4' | '5' | '6',
+        pageSize: size,
+      })
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status
+        if (status === 401 || status === 403) {
+          messageStore.show('登录状态已失效，请重新登录后再保存每页数量', 'error')
+          return
+        }
+        const body = error.response?.data as { error?: string } | undefined
+        const detail = body?.error?.trim()
+        messageStore.show(detail ? `每页数量保存失败：${detail}` : '每页数量保存失败', 'error')
+        return
+      }
+      messageStore.show('每页数量保存失败', 'error')
+    }
   }
 
   function onPageSizeMenuPointerDown(event: PointerEvent) {
@@ -1033,6 +1052,10 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
 
   const editDialogOpen = ref(false)
   const editPayload = ref<GalleryItemEditPayload | null>(null)
+  const editTransferOptions = computed(() => {
+    const fk = editPayload.value?.folderKey?.trim()
+    return fk ? siblingTransferOptions(fk) : []
+  })
 
   function openItemEdit(item: GalleryListItem) {
     const { folderKey: fk, itemId } = resolveGalleryItemContext(item.id, folderKey.value)
@@ -1075,6 +1098,33 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     }
     if (fk === folderKey.value) {
       await loadCategory()
+    }
+  }
+
+  async function handleItemTransferFromEdit(targetFolderKey: string) {
+    const payload = editPayload.value
+    if (!payload || transferSubmitting.value) return
+    const sourceFolderKey = payload.folderKey
+    const itemId = payload.itemId
+    transferSubmitting.value = true
+    try {
+      await transferCategoryItem(sourceFolderKey, itemId, targetFolderKey)
+      messageStore.show('已转移', 'success')
+      closeItemEdit()
+      if (isGlobalSearchView.value) {
+        await refreshGlobalPool()
+      } else {
+        picRows.value = picRows.value.filter((row) => {
+          const ctx = resolveGalleryItemContext(row.id, folderKey.value)
+          return ctx.folderKey !== sourceFolderKey || ctx.itemId !== itemId
+        })
+      }
+      const lastPage = Math.max(1, Math.ceil(orderedFilteredRows.value.length / pageSize.value))
+      void loadPage(Math.min(currentPage.value, lastPage), { silent: true })
+    } catch {
+      messageStore.show('转移失败', 'error')
+    } finally {
+      transferSubmitting.value = false
     }
   }
 
@@ -1412,6 +1462,17 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
         folderKey.value,
         grant ? { grant } : undefined,
       )
+      const storedPageSize = detail.layout?.pageSize
+      const nextPageSize =
+        typeof storedPageSize === 'number' &&
+        Number.isInteger(storedPageSize) &&
+        storedPageSize > 0 &&
+        storedPageSize <= MAX_PAGE_SIZE
+          ? storedPageSize
+          : DEFAULT_PAGE_SIZE
+      pageSizeHydrating = true
+      pageSize.value = nextPageSize
+      pageSizeHydrating = false
       itemSortStore.setServerDefault(folderKey.value, detail.itemSortBy)
       await nextTick()
       categoryDisplayName.value = detail.name
@@ -1589,6 +1650,8 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     closeItemTransfer,
     handleItemTransferConfirm,
     openItemEdit,
+    editTransferOptions,
+    handleItemTransferFromEdit,
     handleCardView,
     handleItemDownload,
     handleItemCopyLink,

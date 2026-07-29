@@ -81,7 +81,11 @@
             </template>
           </div>
           <div class="gallery-layout-tools">
-            <div class="gallery-layout-tools__collapsed" :class="{ 'is-open': toolsExpanded }">
+            <div
+              ref="toolsPanelRef"
+              class="gallery-layout-tools__collapsed"
+              :class="{ 'is-open': toolsExpanded }"
+            >
               <ButtonGroup variant="toolbar" aria-label="画廊布局" class="layout-mode-toggle">
                 <Button
                   class="layout-mode-btn"
@@ -163,8 +167,16 @@
               @click="toggleToolsExpanded"
             />
             <div class="gallery-search-slot">
-              <GallerySearch v-model:open="searchOpen" />
+              <GallerySearch ref="gallerySearchRef" v-model:open="searchOpen" />
             </div>
+            <button
+              v-if="hasActiveSearch"
+              type="button"
+              class="gallery-search-reset"
+              @click="gallerySearchRef?.reset()"
+            >
+              重置搜索
+            </button>
           </div>
         </div>
       </div>
@@ -203,6 +215,7 @@ import moreIcon from '@/assets/icon/more.svg'
 const route = useRoute()
 const categoryNavStore = useCategoryNavStore()
 const gallerySearchStore = useGallerySearchStore()
+const gallerySearchRef = ref<InstanceType<typeof GallerySearch> | null>(null)
 const navAddModalStore = useNavAddModalStore()
 const authStore = useAuthStore()
 const dragSortEditStore = useDragSortEditStore()
@@ -214,6 +227,13 @@ const { authenticated, authConfigured } = storeToRefs(authStore)
 const { enabled: dragSortEditEnabled } = storeToRefs(dragSortEditStore)
 const showGalleryNavCustomize = computed(() => authConfigured.value && authenticated.value)
 const galleryNavEditEnabled = computed(() => showGalleryNavCustomize.value && dragSortEditEnabled.value)
+const hasActiveSearch = computed(
+  () =>
+    Boolean(gallerySearchStore.query.trim()) ||
+    gallerySearchStore.selectedCategories.length > 0 ||
+    gallerySearchStore.selectedExtensions.length > 0 ||
+    gallerySearchStore.selectedTags.length > 0,
+)
 
 const activeFolderKey = computed(() => {
   const fk = route.params.folderKey
@@ -270,6 +290,7 @@ function toggleDragSortEdit() {
 const itemSortPickerRef = ref<{ rootEl: HTMLElement | null; panelEl: HTMLElement | null } | null>(null)
 const itemSortMenuOpen = ref(false)
 const toolsExpanded = ref(false)
+const toolsPanelRef = ref<HTMLElement | null>(null)
 
 const itemSortOptions = [
   { value: 'uploaded_at' as const, label: '上传时间' },
@@ -311,13 +332,28 @@ function toggleItemSortMenu() {
 function toggleToolsExpanded() {
   toolsExpanded.value = !toolsExpanded.value
   if (!toolsExpanded.value) {
-    columnMenuOpen.value = false
-    itemSortMenuOpen.value = false
-    dragSortEditStore.setEnabled(false)
+    collapseTools()
   }
 }
 
+function collapseTools() {
+  toolsExpanded.value = false
+  columnMenuOpen.value = false
+  itemSortMenuOpen.value = false
+  dragSortEditStore.setEnabled(false)
+}
+
 function onDocPointerdownGalleryToolbars(e: PointerEvent) {
+  const target = e.target as Element | null
+  if (
+    toolsExpanded.value &&
+    !dragSortEditEnabled.value &&
+    !toolsPanelRef.value?.contains(target) &&
+    !target?.closest('.gallery-tools-toggle-btn')
+  ) {
+    collapseTools()
+    return
+  }
   if (
     columnMenuOpen.value &&
     !(
@@ -395,7 +431,14 @@ function closeColumnMenu() {
 
 watch([columnMenuOpen, itemSortMenuOpen], ([colOpen, sortOpen]) => {
   document.removeEventListener('pointerdown', onDocPointerdownGalleryToolbars, true)
-  if (colOpen || sortOpen) {
+  if (toolsExpanded.value || colOpen || sortOpen) {
+    nextTick(() => document.addEventListener('pointerdown', onDocPointerdownGalleryToolbars, true))
+  }
+})
+
+watch(toolsExpanded, (expanded) => {
+  document.removeEventListener('pointerdown', onDocPointerdownGalleryToolbars, true)
+  if (expanded) {
     nextTick(() => document.addEventListener('pointerdown', onDocPointerdownGalleryToolbars, true))
   }
 })
@@ -644,6 +687,22 @@ $ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
       justify-content: center;
       flex-shrink: 0;
       min-width: 0;
+    }
+
+    .gallery-search-reset {
+      margin-left: 6px;
+      padding: 4px 0;
+      border: 0;
+      background: transparent;
+      color: #666;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+
+      &:hover {
+        color: #111;
+        text-decoration: underline;
+      }
     }
 
     .layout-mode-toggle {

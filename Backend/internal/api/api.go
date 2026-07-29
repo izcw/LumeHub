@@ -456,6 +456,10 @@ func (h *Handler) patchLayout(w http.ResponseWriter, r *http.Request, folderKey 
 		http.Error(w, "layout.columns invalid", http.StatusBadRequest)
 		return
 	}
+	if req.Layout.PageSize < 0 || req.Layout.PageSize > 150 {
+		http.Error(w, "layout.pageSize invalid", http.StatusBadRequest)
+		return
+	}
 	updated, err := h.store.UpdateCategoryLayout(folderKey, req.Layout)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

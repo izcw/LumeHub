@@ -21,17 +21,6 @@
           <img :src="iconRecover" alt="" draggable="false" />
         </div>
       </Tooltip>
-      <Tooltip v-if="!deleteOnly && showTransfer" text="转移">
-        <div
-          class="card-action"
-          role="button"
-          tabindex="0"
-          aria-label="转移"
-          @click.stop="emit('transfer')"
-        >
-          <img :src="iconTransfer" alt="" draggable="false" />
-        </div>
-      </Tooltip>
       <Tooltip v-if="showAdminActions" text="删除">
         <Popconfirm
           v-model:open="deleteConfirmOpen"
@@ -106,7 +95,6 @@ import iconEdit from '@/assets/icon/edit.svg?url'
 import iconEye from '@/assets/icon/eye.svg?url'
 import iconDownload from '@/assets/icon/download.svg?url'
 import iconCopy from '@/assets/icon/copy.svg?url'
-import iconTransfer from '@/assets/icon/transfer.svg?url'
 import Popconfirm from '@/components/shared-ui/Popconfirm.vue'
 import Tooltip from '@/components/shared-ui/Tooltip.vue'
 
@@ -119,7 +107,6 @@ const props = withDefaults(
     showAdminActions?: boolean
     deleteOnly?: boolean
     showRestore?: boolean
-    showTransfer?: boolean
     deleteConfirmTitle?: string
     viewHref?: string
     layout?: 'card' | 'inline'
@@ -136,7 +123,6 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   restore: []
-  transfer: []
   delete: []
   edit: []
   download: []
@@ -154,7 +140,6 @@ watch(deleteConfirmOpen, (open) => {
 
 const deleteOnly = computed(() => props.deleteOnly === true)
 const showRestore = computed(() => props.showRestore === true)
-const showTransfer = computed(() => props.showTransfer === true)
 const showAdminActions = computed(() => props.showAdminActions === true)
 const viewHref = computed(() => (props.viewHref ?? '').trim())
 

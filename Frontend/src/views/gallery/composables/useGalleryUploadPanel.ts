@@ -380,6 +380,13 @@ export function useGalleryUploadPanel(options: {
     setUploadPanelCollapsedWithBottomRightAnchor(false)
   }
 
+  function onUploadPanelPointerDown(event: PointerEvent) {
+    if (uploadPanelCollapsed.value) return
+    const target = event.target as Element | null
+    if (target?.closest('.upload-float-panel')) return
+    setUploadPanelCollapsedWithBottomRightAnchor(true)
+  }
+
   function setup() {
     stopEnabledWatch = watch(
       () => options.enabled(),
@@ -402,6 +409,7 @@ export function useGalleryUploadPanel(options: {
     window.addEventListener('dragover', onWindowDragOver)
     window.addEventListener('dragleave', onWindowDragLeave)
     window.addEventListener('drop', onWindowDrop)
+    window.addEventListener('pointerdown', onUploadPanelPointerDown)
 
     if (options.enabled()) {
       resetUploadPanelToBottomRight()
@@ -419,6 +427,7 @@ export function useGalleryUploadPanel(options: {
     window.removeEventListener('dragover', onWindowDragOver)
     window.removeEventListener('dragleave', onWindowDragLeave)
     window.removeEventListener('drop', onWindowDrop)
+    window.removeEventListener('pointerdown', onUploadPanelPointerDown)
 
     endUploadPanelDrag()
     for (const ctrl of uploadTaskAbortControllers.values()) ctrl.abort()

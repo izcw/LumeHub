@@ -1,8 +1,9 @@
 package model
 
 type Layout struct {
-	Mode    string `json:"mode"`    // masonry | grid | card
-	Columns string `json:"columns"` // auto | 1 | 2 | ... | 6
+	Mode     string `json:"mode"`    // masonry | grid | card
+	Columns  string `json:"columns"` // auto | 1 | 2 | ... | 6
+	PageSize int    `json:"pageSize,omitempty"`
 }
 
 // Subcategory 二级分类（对应 resource/{folderKey}）

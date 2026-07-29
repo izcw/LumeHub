@@ -59,7 +59,7 @@ export type ExportQualityPreset = {
   id: string
   label: string
   percent: number
-  /** 100% 时区分无损 PNG 与原图 JPEG；其余预设默认 JPEG */
+  /** 100% 使用原图 JPEG；其余预设默认 JPEG */
   encoding?: ExportEncoding
   desc?: string
   custom?: boolean
@@ -69,9 +69,8 @@ export type ExportQualityPreset = {
 export const DEFAULT_JPEG_QUALITY = 0.92
 
 export const EXPORT_QUALITY_PRESETS: ExportQualityPreset[] = [
-  { id: 'lossless', label: '无损', percent: 100, encoding: 'png', desc: 'PNG' },
-  { id: 'original', label: '原图', percent: 100, encoding: 'jpeg', desc: 'JPEG' },
-  { id: 'high', label: '高质量', percent: 90 },
+  { id: 'original', label: '高质量', percent: 100, encoding: 'jpeg', desc: 'JPEG' },
+  { id: 'high', label: '高清', percent: 90 },
   { id: 'balanced', label: '均衡', percent: 75 },
   { id: 'web', label: '网页分享', percent: 60 },
   { id: 'compact', label: '体积优先', percent: 45 },
@@ -1236,7 +1235,7 @@ export function useGalleryImageEditor() {
       next.x = base.x + dx
       next.w = base.w - dx
     }
-    if (event.shiftKey) {
+    if (lockAspect.value || event.shiftKey) {
       next = applyShiftProportionalCrop(base, next, cropDrag.mode)
     }
     crop.value = clampCrop(next)

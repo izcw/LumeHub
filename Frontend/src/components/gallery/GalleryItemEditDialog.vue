@@ -132,6 +132,26 @@
                   <input ref="replaceInputRef" class="item-edit__file-input" type="file" @change="onReplaceSelected" />
                 </div>
               </label>
+              <div v-if="transferOptions.length" class="item-edit__field">
+                <span>转移到</span>
+                <div class="item-edit__transfer-row">
+                  <Select
+                    v-model="transferTargetFolderKey"
+                    :options="transferOptions"
+                    :menu-z-index="selectMenuZIndex"
+                    trigger-label="目标画廊"
+                    menu-aria-label="目标画廊选项"
+                  />
+                  <Button
+                    type="info"
+                    native-type="button"
+                    :disabled="!transferTargetFolderKey || transferSubmitting"
+                    @click="onTransfer"
+                  >
+                    {{ transferSubmitting ? '转移中…' : '转移' }}
+                  </Button>
+                </div>
+              </div>
               <div v-if="payload?.isLivePhoto" class="info-note info-note--live">
                 实况图包含静图与短视频；编辑保存仅影响静图，实况视频会保留。
               </div>
@@ -294,7 +314,7 @@
               </div>
             </div>
 
-            <DetailsCollapse summary="保存为自定义预设">
+            <DetailsCollapse summary="保存当前为自定义预设">
               <div class="tag-picker__add">
                 <Input v-model="customWatermarkLabel" type="text" placeholder="预设名称，留空则用当前文字" />
                 <Button native-type="button" @click="saveCustomWatermarkPreset">保存</Button>
@@ -345,7 +365,7 @@
 
           <template v-else-if="activeTab === 'export'">
             <p class="item-edit__hint">
-              100% 可选两种：「无损」为 PNG；「原图」为最高质量 JPEG。低于 100% 均为 JPEG 有损压缩。PNG 无损体积往往更大，属正常现象。
+              “下载原图”会直接下载原始文件；“下载压缩图片”按当前裁切、尺寸、水印和质量设置导出。
               <template v-if="payload?.fileSize">
                 当前原版约 {{ formatFileSize(payload.fileSize) }}。
               </template>
@@ -397,7 +417,7 @@
               </div>
             </div>
 
-            <DetailsCollapse summary="保存为自定义预设">
+            <DetailsCollapse summary="保存当前为自定义预设">
               <div class="tag-picker__add">
                 <Input v-model="customExportLabel" type="text" placeholder="预设名称" />
                 <Button native-type="button" @click="saveCustomExportQualityPreset">保存</Button>
@@ -410,7 +430,15 @@
                 :disabled="!cropReady || saving"
                 @click="onExportDownload"
               >
-                下载图片
+                下载压缩图片
+              </Button>
+              <Button
+                type="info"
+                native-type="button"
+                :disabled="saving"
+                @click="onOriginalDownload"
+              >
+                下载原图<span v-if="payload?.fileSize">（约 {{ formatFileSize(payload.fileSize) }}）</span>
               </Button>
             </div>
           </template>
@@ -440,8 +468,8 @@
             <Button
               v-if="showFooterCloseAndSave"
               native-type="button"
-              :disabled="saving"
-              @click="onSave"
+              :disabled="saving || !hasPendingChanges"
+              @click="onSave()"
             >
               {{ saving ? '保存中…' : '应用编辑' }}
             </Button>
@@ -595,6 +623,75 @@
         </div>
       </section>
 
+      <section v-else-if="isEditableText" class="item-edit__preview item-edit__preview--markdown">
+        <div class="item-edit__preview-head item-edit__preview-head--media">
+          <div class="item-edit__preview-meta">
+            <span class="item-edit__preview-dim">
+              <span class="item-edit__preview-dim-label">类型</span>
+              <span class="item-edit__preview-dim-value">{{ isMarkdown ? 'Markdown' : 'TXT' }}</span>
+            </span>
+            <span class="item-edit__preview-divider" aria-hidden="true" />
+            <span class="item-edit__preview-dim">
+              <span class="item-edit__preview-dim-label">大小</span>
+              <span class="item-edit__preview-dim-value">{{ previewSizeText }}</span>
+            </span>
+          </div>
+          <div class="item-edit__markdown-actions">
+            <Button
+              v-if="!markdownEditing"
+              type="info"
+              size="small"
+              native-type="button"
+              :disabled="markdownLoading || saving"
+              @click="markdownEditing = true"
+            >
+              编辑
+            </Button>
+            <template v-else>
+              <Button
+                type="info"
+                size="small"
+                native-type="button"
+                :disabled="saving"
+                @click="onMarkdownCancel"
+              >
+                取消
+              </Button>
+              <Button
+                size="small"
+                native-type="button"
+                :disabled="saving || markdownLoading"
+                @click="onMarkdownSave"
+              >
+                保存
+              </Button>
+            </template>
+          </div>
+        </div>
+        <div class="item-edit__markdown-viewport">
+          <div v-if="markdownLoading" class="item-edit__markdown-state">正在加载 Markdown…</div>
+          <div v-else-if="markdownError" class="item-edit__markdown-state item-edit__markdown-state--error">
+            {{ markdownError }}
+          </div>
+          <MarkdownEditor
+            v-if="isMarkdown"
+            v-model="markdownContent"
+            :editing="markdownEditing"
+            height="100%"
+          />
+          <pre
+            v-else-if="!markdownEditing"
+            class="item-edit__text-document"
+          >{{ markdownContent }}</pre>
+          <textarea
+            v-else
+            v-model="markdownContent"
+            class="item-edit__text-document-editor"
+            spellcheck="false"
+          />
+        </div>
+      </section>
+
       <section v-else-if="payload" class="item-edit__preview item-edit__preview--media">
         <div class="item-edit__preview-head item-edit__preview-head--media">
           <div class="item-edit__preview-meta">
@@ -656,6 +753,7 @@ import {
   revertCategoryItemEdit,
 } from '@/api/gallery'
 import GalleryFilePreview from '@/components/gallery/GalleryFilePreview.vue'
+import MarkdownEditor from '@/components/gallery/MarkdownEditor.vue'
 import {
   galleryMediaKindFromUrl,
   galleryExtFromUrl,
@@ -704,6 +802,7 @@ import {
   lookupGalleryFolder,
 } from '@/utils/galleryAccess'
 import { getGalleryViewGrant } from '@/utils/galleryViewGrant'
+import { linkNameFromResourceUrl } from '@/views/gallery/utils'
 import { useMessageStore } from '@/stores/message'
 import { useCategoryNavStore } from '@/stores/categoryNav'
 import { GALLERY_TAG_OPTIONS } from '@/stores/gallerySearch'
@@ -753,6 +852,8 @@ type InfoRow = {
   tags?: readonly string[]
 }
 
+type TransferOption = { label: string; value: string; disabled?: boolean }
+
 const TAB_META: Record<EditTab, { label: string; short: string; icon: string; desc: string }> = {
   basic: { label: '基本信息', short: '基本', icon: iconInformation, desc: '文件属性与元数据' },
   crop: {
@@ -771,12 +872,24 @@ const TAB_META: Record<EditTab, { label: string; short: string; icon: string; de
 }
 
 const props = withDefaults(
-  defineProps<{ open: boolean; payload: GalleryItemEditPayload | null; zIndex?: number }>(),
+  defineProps<{
+    open: boolean
+    payload: GalleryItemEditPayload | null
+    zIndex?: number
+    transferOptions?: TransferOption[]
+    transferSubmitting?: boolean
+  }>(),
   { zIndex: 2700 },
 )
 
 const selectMenuZIndex = computed(() => props.zIndex + 50)
-const emit = defineEmits<{ close: []; saved: [] }>()
+const transferOptions = computed(() => props.transferOptions ?? [])
+const transferSubmitting = computed(() => props.transferSubmitting === true)
+const emit = defineEmits<{
+  close: []
+  saved: []
+  transfer: [targetFolderKey: string]
+}>()
 const messageStore = useMessageStore()
 const categoryNavStore = useCategoryNavStore()
 
@@ -847,6 +960,12 @@ const linkStemModel = ref('')
 const titleModel = ref('')
 const selectedTags = ref<string[]>([])
 const newTagInput = ref('')
+const transferTargetFolderKey = ref('')
+const markdownContent = ref('')
+const markdownOriginalContent = ref('')
+const markdownLoading = ref(false)
+const markdownError = ref('')
+const markdownEditing = ref(false)
 const customPresets = ref(loadCustomSizePresets())
 const customPresetLabel = ref('')
 const customPresetWidth = ref('')
@@ -899,6 +1018,20 @@ const isImage = computed(() => {
   return src !== '' && galleryMediaKindFromUrl(src) === 'image'
 })
 
+const isMarkdown = computed(() => {
+  const p = props.payload
+  const format = (p?.format || galleryExtFromUrl(p?.fullSrc ?? '')).trim().toLowerCase()
+  return format === 'md' || format === 'markdown'
+})
+
+const isTextDocument = computed(() => {
+  const p = props.payload
+  const format = (p?.format || galleryExtFromUrl(p?.fullSrc ?? '')).trim().toLowerCase()
+  return format === 'txt'
+})
+
+const isEditableText = computed(() => isMarkdown.value || isTextDocument.value)
+
 const previewMediaKind = computed((): GalleryMediaKind => {
   const p = props.payload
   const declared = p?.mediaKind?.trim().toLowerCase()
@@ -915,6 +1048,7 @@ const previewMediaKind = computed((): GalleryMediaKind => {
 })
 
 const isVideoPreview = computed(() => previewMediaKind.value === 'video')
+const supportsThumbnail = computed(() => isImage.value || isVideoPreview.value)
 
 const mediaPreviewSrc = computed(() =>
   toAbsoluteResourceUrl(props.payload?.fullSrc?.trim() || ''),
@@ -1194,10 +1328,38 @@ const activeTabDesc = computed(() => TAB_META[activeTab.value].desc)
 
 const canRevertEdited = computed(() => Boolean(props.payload?.useEdited))
 
-/** 基本 / 导出页不显示关闭与应用编辑 */
+function normalizedTags(tags: readonly string[] | undefined): string[] {
+  return (tags ?? []).map((tag) => tag.trim()).filter(Boolean)
+}
+
+const hasPendingChanges = computed(() => {
+  const payload = props.payload
+  if (!payload) return false
+
+  const originalLinkStem = resolveLinkStem({
+    linkName: payload.linkName,
+    shortUrl: payload.shortUrl,
+  })
+  const originalTags = normalizedTags(payload.tags)
+  const currentTags = normalizedTags(selectedTags.value)
+
+  const hasTextChanges =
+    isEditableText.value && markdownContent.value !== markdownOriginalContent.value
+  const hasMetadataChanges =
+    linkStemModel.value.trim() !== originalLinkStem.trim() ||
+    titleModel.value.trim() !== (payload.title?.trim() ?? '') ||
+    JSON.stringify(currentTags) !== JSON.stringify(originalTags) ||
+    replaceFile.value != null ||
+    (isImage.value && editor.hasEdits())
+
+  // 文本正文只能通过右侧编辑器的“保存”提交，避免左侧按钮误保存或关闭未保存正文。
+  return hasMetadataChanges && !hasTextChanges
+})
+
+/** 基本页需要保存元数据；导出页仅负责导出下载 */
 const showFooterCloseAndSave = computed(
   () =>
-    (activeTab.value !== 'basic' && activeTab.value !== 'export') ||
+    activeTab.value !== 'export' ||
     replaceFile.value != null,
 )
 
@@ -1258,7 +1420,6 @@ const infoRows = computed((): InfoRow[] => {
     { label: '上传时间', value: formatDate(p?.uploadedAt) },
     { label: '更新时间', value: formatDate(p?.updatedAt) },
     { label: '原版链接', value: original, copyable: original !== '—' },
-    { label: '缩略图链接', value: thumbnail, copyable: thumbnail !== '—' },
     {
       label: '短链接',
       value:
@@ -1269,6 +1430,14 @@ const infoRows = computed((): InfoRow[] => {
       copyKind: 'shareableShortLink',
     },
   )
+
+  if (supportsThumbnail.value) {
+    rows.splice(rows.length - 1, 0, {
+      label: '缩略图链接',
+      value: thumbnail,
+      copyable: thumbnail !== '—',
+    })
+  }
 
   return rows
 })
@@ -1296,6 +1465,7 @@ function resetForm() {
   titleModel.value = props.payload?.title?.trim() ?? ''
   selectedTags.value = [...(props.payload?.tags ?? [])]
   newTagInput.value = ''
+  transferTargetFolderKey.value = ''
   customPresets.value = loadCustomSizePresets()
   customPresetLabel.value = ''
   customPresetWidth.value = ''
@@ -1308,6 +1478,11 @@ function resetForm() {
   replaceFileName.value = ''
   errorText.value = ''
   exifData.value = {}
+  markdownContent.value = ''
+  markdownOriginalContent.value = ''
+  markdownLoading.value = false
+  markdownError.value = ''
+  markdownEditing.value = false
   clearRulerGuides()
   editor.resetTransformState()
   clearExportEstimate()
@@ -1437,6 +1612,21 @@ function addNewTag() {
     selectedTags.value = [...selectedTags.value, tag]
   }
   newTagInput.value = ''
+}
+
+function onTransfer() {
+  const target = transferTargetFolderKey.value.trim()
+  if (!target || transferSubmitting.value) return
+  emit('transfer', target)
+}
+
+function onMarkdownCancel() {
+  markdownContent.value = markdownOriginalContent.value
+  markdownEditing.value = false
+}
+
+async function onMarkdownSave() {
+  await onSave({ includeTextContent: true })
 }
 
 function openReplacePicker() {
@@ -1625,6 +1815,22 @@ async function onExportDownload() {
   }
 }
 
+function onOriginalDownload() {
+  const payload = props.payload
+  if (!payload) return
+  const url = (payload.originalUrl?.trim() || resolveEditorOriginalUrl(payload)).trim()
+  if (!url) return
+  const a = document.createElement('a')
+  a.href = url
+  a.download = payload.linkName || linkNameFromResourceUrl(payload.shortUrl || payload.fullSrc)
+  a.target = '_blank'
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  messageStore.show('已开始下载', 'success')
+}
+
 function onStageWheel(event: WheelEvent) {
   editor.onStageWheel(event, stageRef.value)
   repaint()
@@ -1636,6 +1842,10 @@ function repaint() {
 
 async function loadPreview() {
   const payload = props.payload
+  if (payload && isEditableText.value) {
+    await loadMarkdownPreview(payload)
+    return
+  }
   if (!payload || !isImage.value) return
   const src = resolveEditorOriginalUrl(payload)
   if (!src || src.includes('/thumb/')) {
@@ -1644,13 +1854,29 @@ async function loadPreview() {
   }
   const abs = toAbsoluteResourceUrl(src)
   await editor.loadSourceImage(abs)
-  editor.syncSizeFromCrop()
   editor.clearEditHistory()
   await nextTick()
   repaint()
   void readImageExif(abs).then((d) => {
     exifData.value = d
   })
+}
+
+async function loadMarkdownPreview(payload: GalleryItemEditPayload) {
+  markdownLoading.value = true
+  markdownError.value = ''
+  try {
+    const url = toAbsoluteResourceUrl(payload.fullSrc.trim())
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`加载 Markdown 失败（${response.status}）`)
+    const content = await response.text()
+    markdownContent.value = content
+    markdownOriginalContent.value = content
+  } catch (e) {
+    markdownError.value = e instanceof Error ? e.message : '加载 Markdown 失败'
+  } finally {
+    markdownLoading.value = false
+  }
 }
 
 async function onRevertEdited() {
@@ -1669,7 +1895,7 @@ async function onRevertEdited() {
   }
 }
 
-async function onSave() {
+async function onSave(options: { includeTextContent?: boolean } = {}) {
   const payload = props.payload
   if (!payload) return
   saving.value = true
@@ -1685,6 +1911,17 @@ async function onSave() {
 
     if (replaceFile.value) {
       await patchCategoryItemWithFile(payload.folderKey, payload.itemId, replaceFile.value, fields, {
+        saveMode: 'replace',
+      })
+    } else if (
+      options.includeTextContent &&
+      isEditableText.value &&
+      markdownContent.value !== markdownOriginalContent.value
+    ) {
+      const filename = fullLinkName() || payload.linkName || (isMarkdown.value ? 'document.md' : 'document.txt')
+      const fileType = isMarkdown.value ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8'
+      const file = new File([markdownContent.value], filename, { type: fileType })
+      await patchCategoryItemWithFile(payload.folderKey, payload.itemId, file, fields, {
         saveMode: 'replace',
       })
     } else if (isImage.value && editor.hasEdits()) {
@@ -1728,9 +1965,7 @@ watch(
   () => activeTab.value,
   (tab, prev) => {
     if (!props.open || !isImage.value) return
-    if (tab === 'crop') {
-      editor.syncSizeFromCrop()
-    } else if (prev === 'crop') {
+    if (prev === 'crop') {
       editor.resetZoom()
     }
     if (tab === 'export') {
@@ -1925,6 +2160,10 @@ $item-edit-crop-shade: rgba(5, 7, 11, 0.64);
   display: none;
 }
 
+.item-edit.is-basic-tab .item-edit__preview--markdown .item-edit__preview-head {
+  display: flex;
+}
+
 .item-edit__nav-rail {
   display: flex;
   flex-direction: column;
@@ -2001,7 +2240,7 @@ $item-edit-crop-shade: rgba(5, 7, 11, 0.64);
 }
 
 .item-edit__content-head {
-  padding: 18px 20px 0;
+  padding: 12px 20px 0;
 }
 
 .item-edit__content-title {
@@ -2030,9 +2269,12 @@ $item-edit-crop-shade: rgba(5, 7, 11, 0.64);
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 20px 16px;
+  padding: 12px 20px 30px;
   border-top: 1px solid #f0f0f0;
   background: #fff;
+
+  position: sticky;
+  bottom: 0;
 }
 
 .item-edit__footer-main {
@@ -2527,6 +2769,17 @@ $item-edit-crop-shade: rgba(5, 7, 11, 0.64);
   flex-wrap: wrap;
 }
 
+.item-edit__transfer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  > :first-child {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .item-edit__replace-name {
   flex: 1;
   min-width: 100px;
@@ -2565,6 +2818,67 @@ $item-edit-crop-shade: rgba(5, 7, 11, 0.64);
 
 .item-edit__preview-head--media {
   background: #fff;
+}
+
+.item-edit__preview--markdown {
+  background: #fff;
+}
+
+.item-edit__preview--markdown .item-edit__preview-head--media {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.item-edit__markdown-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.item-edit__markdown-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+}
+
+.item-edit__markdown-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  color: $item-edit-muted;
+  font-size: 13px;
+  text-align: center;
+}
+
+.item-edit__markdown-state--error {
+  color: #b42318;
+}
+
+.item-edit__text-document,
+.item-edit__text-document-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 32px 42px 56px;
+  overflow: auto;
+  border: 0;
+  outline: 0;
+  background: #fff;
+  color: #252525;
+  font: 14px/1.75 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.item-edit__text-document-editor {
+  resize: none;
 }
 
 .item-edit__media-viewport {
@@ -3175,18 +3489,18 @@ $crop-corner-hit: 10px;
 // 窄屏堆叠布局（与 is-stack-layout / max-width: 960px 同步）
 .item-edit.is-stack-layout {
   grid-template-columns: 60px minmax(0, 1fr);
-  grid-template-rows: minmax(200px, 1.35fr) minmax(0, 1fr);
+  grid-template-rows: minmax(220px, 0.9fr) minmax(0, 1fr);
   height: 100%;
   min-height: 0;
   overflow: hidden;
 
-  &:not(.is-crop-tab) {
-    grid-template-rows: minmax(140px, 0.82fr) minmax(0, 1fr);
-  }
+  // &:not(.is-crop-tab) {
+  //   grid-template-rows: minmax(140px, 0.82fr) minmax(0, 1fr);
+  // }
 
-  &.is-basic-tab {
-    grid-template-rows: minmax(96px, 0.58fr) minmax(0, 1fr);
-  }
+  // &.is-basic-tab {
+  //   grid-template-rows: minmax(96px, 0.58fr) minmax(0, 1fr);
+  // }
 
   .item-edit__preview {
     position: relative;
@@ -3285,10 +3599,7 @@ $crop-corner-hit: 10px;
   }
 
   .item-edit__footer {
-    position: sticky;
-    bottom: 0;
     z-index: 2;
-    padding: 10px 16px 12px;
     box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.05);
   }
 
@@ -3309,15 +3620,15 @@ $crop-corner-hit: 10px;
 @media (max-width: 640px) {
   .item-edit.is-stack-layout {
     grid-template-columns: 52px minmax(0, 1fr);
-    grid-template-rows: minmax(220px, 1.45fr) minmax(0, 1fr);
+    grid-template-rows: minmax(220px, 0.9fr) minmax(0, 1fr);
 
-    &:not(.is-crop-tab) {
-      grid-template-rows: minmax(130px, 0.78fr) minmax(0, 1fr);
-    }
+    // &:not(.is-crop-tab) {
+    //   grid-template-rows: minmax(130px, 0.78fr) minmax(0, 1fr);
+    // }
 
-    &.is-basic-tab {
-      grid-template-rows: minmax(88px, 0.5fr) minmax(0, 1fr);
-    }
+    // &.is-basic-tab {
+    //   grid-template-rows: minmax(88px, 0.5fr) minmax(0, 1fr);
+    // }
   }
 }
 

@@ -184,20 +184,12 @@
     <GalleryItemEditDialog
       :open="editDialogOpen"
       :payload="editPayload"
+      :transfer-options="editTransferOptions"
+      :transfer-submitting="transferSubmitting"
       :z-index="galleryDialogZIndex"
       @close="closeItemEdit"
       @saved="handleItemEditSaved"
-    />
-
-    <GalleryItemTransferDialog
-      :open="transferDialogOpen"
-      :item-label="transferPayload?.itemLabel"
-      :current-folder-key="transferPayload?.folderKey"
-      :options="transferDialogOptions"
-      :confirm-disabled="transferSubmitting || transferDialogOptions.length === 0"
-      :z-index="galleryDialogZIndex"
-      @close="closeItemTransfer"
-      @confirm="handleItemTransferConfirm"
+      @transfer="handleItemTransferFromEdit"
     />
 
   </div>
@@ -212,7 +204,6 @@ import GalleryStage from '@/views/gallery/GalleryStage.vue'
 import GalleryUploadPanel from '@/views/gallery/GalleryUploadPanel.vue'
 import { FileDetailViewer } from '@/components/viewers'
 import GalleryItemEditDialog from '@/components/gallery/GalleryItemEditDialog.vue'
-import GalleryItemTransferDialog from '@/components/gallery/GalleryItemTransferDialog.vue'
 import GalleryViewerToolbar from '@/views/gallery/GalleryViewerToolbar.vue'
 import { VIEWER_Z } from '@/components/viewers/shared/viewerLayers'
 import { useGalleryViewState } from '@/views/gallery/composables'
@@ -322,6 +313,8 @@ const {
   editPayload,
   closeItemEdit,
   handleItemEditSaved,
+  editTransferOptions,
+  handleItemTransferFromEdit,
   transferDialogOpen,
   transferPayload,
   transferDialogOptions,

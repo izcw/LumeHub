@@ -1,3 +1,36 @@
 {
-  "items": []
+  "items": [
+    {
+      "folderKey": "linshi",
+      "majorName": "浏览",
+      "subName": "临时",
+      "majorKey": "liulan",
+      "majorId": 100,
+      "subId": 5,
+      "subSort": 3,
+      "layout": {
+        "mode": "grid",
+        "columns": "auto"
+      },
+      "itemSortBy": "uploaded_at",
+      "public": true,
+      "deletedAt": "2026-07-29T16:32:02Z",
+      "item": {
+        "id": "07a9ec9e90a3_20260729",
+        "sort": 30,
+        "uploadedAt": "2026-07-29T15:55:53Z",
+        "updatedAt": "2026-07-29T16:05:48Z",
+        "filename": "original/07a9ec9e90a3_20260729.jpg",
+        "fileSize": 21131810,
+        "linkName": "123.jpg",
+        "thumbnail": "thumb/07a9ec9e90a3_20260729.jpg",
+        "title": "hello",
+        "tags": [
+          "jpg"
+        ],
+        "editedFilename": "edited/07a9ec9e90a3_20260729.jpg",
+        "useEdited": true
+      }
+    }
+  ]
 }

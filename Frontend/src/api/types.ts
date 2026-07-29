@@ -1,6 +1,7 @@
 export type ApiLayout = {
   mode: 'masonry' | 'grid' | 'card'
   columns: 'auto' | '1' | '2' | '3' | '4' | '5' | '6'
+  pageSize?: number
 }
 
 export type ApiCategoryItem = {

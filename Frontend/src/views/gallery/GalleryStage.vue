@@ -69,7 +69,7 @@
     <span v-if="orderPersisting" class="order-persist-hint">排序保存中…</span>
     <span v-else-if="orderPersistHint" class="order-persist-hint">{{ orderPersistHint }}</span>
     <ToolbarSelect
-      v-if="dragSortEditEnabled && layoutMode !== 'card'"
+      v-if="dragSortEditEnabled"
       ref="pageSizePickerRef"
       :open="pageSizeMenuOpen"
       :model-value="pageSizeSelectValue"

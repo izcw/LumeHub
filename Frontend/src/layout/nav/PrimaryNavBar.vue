@@ -685,7 +685,6 @@ $ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
       object-fit: contain;
       opacity: 0.62;
       cursor: grab;
-      margin-right: 4px;
     }
 
     :deep(.nav-link__drag-chosen) .primary-nav-drag-handle {
@@ -750,7 +749,7 @@ $ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
       display: block;
       object-fit: contain;
       opacity: 0.55;
-      
+
       position: absolute;
       right: 0;
       top: 0;

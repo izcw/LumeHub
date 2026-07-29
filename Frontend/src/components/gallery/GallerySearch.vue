@@ -154,7 +154,7 @@
 
               <div class="gallery-search__footer">
                 <button type="button" class="gallery-search__footer-reset" @click="reset">
-                  重置条件
+                  重置搜索
                 </button>
               </div>
             </div>
@@ -373,6 +373,8 @@ watch(open, (isOpen) => {
     nextTick(() => searchInputRef.value?.focus())
   }
 })
+
+defineExpose({ reset })
 </script>
 
 <style scoped lang="scss">

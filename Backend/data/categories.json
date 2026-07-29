@@ -44,8 +44,9 @@
           "name": "临时",
           "folderKey": "linshi",
           "layout": {
-            "mode": "grid",
-            "columns": "auto"
+            "mode": "card",
+            "columns": "auto",
+            "pageSize": 10
           },
           "itemSortBy": "uploaded_at",
           "public": true,

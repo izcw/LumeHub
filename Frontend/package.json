@@ -12,6 +12,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@toast-ui/editor": "^3.2.2",
     "axios": "^1.9.0",
     "pinia": "^3.0.4",
     "qrcode.vue": "^3.9.1",
