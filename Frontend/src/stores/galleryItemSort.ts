@@ -5,7 +5,9 @@ import {
   type GalleryItemSortMode,
 } from '@/utils/galleryItemOrder'
 
-const LS_KEY = 'lumehub-gallery-item-sort-overrides'
+// v2 drops legacy overrides created when drag sorting was treated as the
+// default mode. New categories now default to uploaded_at.
+const LS_KEY = 'lumehub-gallery-item-sort-overrides-v2'
 
 type OverridesMap = Record<string, GalleryItemSortMode>
 
