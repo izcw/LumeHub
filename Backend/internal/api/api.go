@@ -447,8 +447,8 @@ func (h *Handler) patchLayout(w http.ResponseWriter, r *http.Request, folderKey 
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-	if req.Layout.Mode != "masonry" && req.Layout.Mode != "grid" {
-		http.Error(w, "layout.mode must be masonry or grid", http.StatusBadRequest)
+	if req.Layout.Mode != "masonry" && req.Layout.Mode != "grid" && req.Layout.Mode != "card" {
+		http.Error(w, "layout.mode must be masonry, grid, or card", http.StatusBadRequest)
 		return
 	}
 	col := req.Layout.Columns

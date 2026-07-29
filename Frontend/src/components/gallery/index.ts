@@ -5,6 +5,7 @@ export { default as MasonryGallery } from './MasonryGallery.vue'
 export { default as GalleryCardItem } from './GalleryCardItem.vue'
 export { default as GalleryMasonryLayout } from './GalleryMasonryLayout.vue'
 export { default as GalleryGridLayout } from './GalleryGridLayout.vue'
+export { default as GalleryCardSwitchingLayout } from './GalleryCardSwitchingLayout.vue'
 export type { GalleryDisplayItem, GalleryItemStyleFn } from './types'
 export {
   default as GalleryItemEditDialog,

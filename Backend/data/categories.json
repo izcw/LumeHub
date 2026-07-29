@@ -15,7 +15,7 @@
           "folderKey": "kasumi",
           "layout": {
             "mode": "masonry",
-            "columns": "auto"
+            "columns": "3"
           },
           "itemSortBy": "sort",
           "public": true,
@@ -53,6 +53,15 @@
           "apiKeyHash": "a3c7b9890fab34ccfc3aa5f593ef72a27f1a25454fa966ad50815a11328b5e79"
         }
       ]
+    },
+    {
+      "id": 101,
+      "sort": 2,
+      "name": "hello",
+      "public": false,
+      "encrypted": true,
+      "encryptedPasswordHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "subcategories": []
     }
   ]
 }

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 export type MasonryColumnChoice = 'auto' | 1 | 2 | 3 | 4 | 5 | 6
 
-export type GalleryLayoutMode = 'masonry' | 'grid'
+export type GalleryLayoutMode = 'masonry' | 'grid' | 'card'
 
 const STORAGE_KEY = 'lumehub-masonry-column-choice'
 const LAYOUT_MODE_KEY = 'lumehub-gallery-layout-mode'
@@ -11,7 +11,7 @@ const LAYOUT_MODE_KEY = 'lumehub-gallery-layout-mode'
 function readStoredLayoutMode(): GalleryLayoutMode {
   try {
     const raw = localStorage.getItem(LAYOUT_MODE_KEY)
-    if (raw === 'grid' || raw === 'masonry') return raw
+    if (raw === 'grid' || raw === 'masonry' || raw === 'card') return raw
   } catch {
     /* ignore */
   }

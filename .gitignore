@@ -57,3 +57,6 @@ build/
 tmp/
 temp/
 .cache/
+
+
+*zip

@@ -1,7 +1,7 @@
 package model
 
 type Layout struct {
-	Mode    string `json:"mode"`    // masonry | grid
+	Mode    string `json:"mode"`    // masonry | grid | card
 	Columns string `json:"columns"` // auto | 1 | 2 | ... | 6
 }
 

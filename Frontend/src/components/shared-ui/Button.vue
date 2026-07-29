@@ -5,6 +5,7 @@
     :style="buttonStyle"
     :type="nativeType"
     :disabled="disabled"
+    @click="emit('click', $event)"
   >
     <img
       v-if="iconSrc && iconPosition === 'left'"
@@ -59,6 +60,10 @@ const props = withDefaults(
     width: '',
   },
 )
+
+const emit = defineEmits<{
+  (e: 'click', event: MouseEvent): void
+}>()
 
 const buttonStyle = computed(() => {
   if (!props.width) return undefined

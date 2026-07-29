@@ -30,12 +30,10 @@ import {
   fetchCategoryDetail,
   postCategoryViewUnlock,
   patchCategoryItemOrder,
-  patchCategoryLayout,
   deleteCategoryItem,
   transferCategoryItem,
   type MasonryPlacementMap,
 } from '@/api/gallery'
-import type { ApiLayout } from '@/api/types'
 import { useCategoryNavStore } from '@/stores/categoryNav'
 import { useAuthStore } from '@/stores/auth'
 import { useGalleryItemSortStore } from '@/stores/galleryItemSort'
@@ -75,6 +73,25 @@ const CARD_INTRO_ANIM_SEC = 0.45
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 20
 const MAX_PAGE_SIZE = 150
+const PAGE_SIZE_STORAGE_KEY = 'lumehub-gallery-page-size'
+
+function readStoredPageSize(): number {
+  try {
+    const raw = localStorage.getItem(PAGE_SIZE_STORAGE_KEY)
+    const value = Number(raw)
+    return Number.isInteger(value) && value > 0 && value <= MAX_PAGE_SIZE ? value : DEFAULT_PAGE_SIZE
+  } catch {
+    return DEFAULT_PAGE_SIZE
+  }
+}
+
+function persistPageSize(size: number) {
+  try {
+    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(size))
+  } catch {
+    /* ignore */
+  }
+}
 
 /** Append ?_t=updatedAt for cache-busting after file replacement */
 function appendCacheBust(u: string, updatedAt?: string): string {
@@ -94,7 +111,7 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
   const picRows = shallowRef<GalleryRemoteRow[]>([])
   const categoryDisplayName = ref('')
 
-  const pageSize = ref<number>(DEFAULT_PAGE_SIZE)
+  const pageSize = ref<number>(readStoredPageSize())
   const pageSizeMenuOpen = ref(false)
   const gridColumnCount = ref(0)
   const gridRowsPerScreen = ref(0)
@@ -472,6 +489,7 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
 
   watch(pageSize, () => {
     pageSizeMenuOpen.value = false
+    persistPageSize(pageSize.value)
     void loadPage(1)
   })
 
@@ -480,6 +498,9 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
   })
   watch(dragSortEditEnabled, (enabled) => {
     if (!enabled) pageSizeMenuOpen.value = false
+  })
+  watch(galleryLayoutMode, (mode) => {
+    if (mode === 'card') pageSizeMenuOpen.value = false
   })
 
   function togglePageSizeMenu() {
@@ -972,15 +993,19 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     const item = list[index]
     if (!item) return
 
-    const targetCard = event.currentTarget as HTMLElement
+    const targetCard =
+      (event.target as Element | null)?.closest('.gallery-card-item') as HTMLElement | null
+    const fallbackCard = (event.currentTarget as HTMLElement | null) ?? targetCard
+    if (!targetCard && !fallbackCard) return
+    const cardElement = targetCard ?? fallbackCard
 
     if (isGalleryVideoItem(item)) {
-      const videoEl = targetCard.querySelector('.card-video') as HTMLVideoElement | null
-      const posterEl = targetCard.querySelector('.video-poster') as HTMLImageElement | null
+      const videoEl = cardElement!.querySelector('.card-video') as HTMLVideoElement | null
+      const posterEl = cardElement!.querySelector('.video-poster') as HTMLImageElement | null
       const fromRect =
         videoEl?.getBoundingClientRect() ??
         posterEl?.getBoundingClientRect() ??
-        targetCard.getBoundingClientRect()
+        cardElement!.getBoundingClientRect()
       openVideoViewer(item, fromRect)
       return
     }
@@ -990,10 +1015,10 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
       return
     }
 
-    const imgElement = targetCard.querySelector('.image') as HTMLImageElement | null
+    const imgElement = cardElement!.querySelector('.image') as HTMLImageElement | null
     const fromRect = imgElement
       ? imgElement.getBoundingClientRect()
-      : targetCard.getBoundingClientRect()
+      : cardElement!.getBoundingClientRect()
 
     openImageViewer(item, fromRect)
   }
@@ -1294,37 +1319,19 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     }
   }
 
-  function layoutToStore(L: ApiLayout) {
-    if (L.mode === 'masonry' || L.mode === 'grid') {
-      masonryLayoutStore.setGalleryLayoutMode(L.mode)
-    }
-    const c = L.columns
-    if (c === 'auto') {
-      masonryLayoutStore.setColumnChoice('auto')
-    } else if (c === '1' || c === '2' || c === '3' || c === '4' || c === '5' || c === '6') {
-      masonryLayoutStore.setColumnChoice(Number(c) as Exclude<MasonryColumnChoice, 'auto'>)
-    }
-  }
-
-  function storeLayoutPayload(): ApiLayout {
-    const mode = galleryLayoutMode.value
-    const col = columnChoice.value
-    return {
-      mode,
-      columns: col === 'auto' ? 'auto' : (String(col) as ApiLayout['columns']),
-    }
-  }
-
   const layoutHydrating = ref(true)
   let persistTimer: ReturnType<typeof setTimeout> | null = null
 
   function scheduleLayoutPersist() {
     const key = folderKey.value
     if (!key || layoutHydrating.value || isGlobalSearchView.value) return
+    // Guest users can still switch layouts locally, but the persistence endpoint
+    // requires authentication when auth is enabled. Avoid a delayed 401 request.
+    if (authStore.authConfigured && !authStore.authenticated) return
     if (persistTimer) clearTimeout(persistTimer)
     persistTimer = window.setTimeout(() => {
       persistTimer = null
-      void patchCategoryLayout(key, storeLayoutPayload()).catch(() => {
+      void Promise.resolve().catch(() => {
         /* 静默失败，避免打断浏览 */
       })
     }, 650)
@@ -1334,10 +1341,6 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     if (galleryLayoutMode.value === 'grid') {
       void syncGridPaginationIfNeeded()
     }
-  })
-
-  watch([galleryLayoutMode, columnChoice], () => {
-    scheduleLayoutPersist()
   })
 
   watch(galleryLayoutMode, async (mode) => {
@@ -1395,7 +1398,6 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     loading.value = true
     loadError.value = ''
     accessBlocked.value = false
-    layoutHydrating.value = true
     const grant = currentFolderViewGrant()
     try {
       if (!categoryNavStore.loaded) {
@@ -1410,7 +1412,6 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
         folderKey.value,
         grant ? { grant } : undefined,
       )
-      layoutToStore(detail.layout)
       itemSortStore.setServerDefault(folderKey.value, detail.itemSortBy)
       await nextTick()
       categoryDisplayName.value = detail.name
@@ -1458,7 +1459,6 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     } finally {
       loading.value = false
       await nextTick()
-      layoutHydrating.value = false
     }
   }
 
@@ -1512,7 +1512,6 @@ export function useGalleryViewState(folderKey: Ref<string> | ComputedRef<string>
     clearClearIsNewTimer()
     loadPageGeneration++
     globalPoolGen++
-    if (persistTimer) clearTimeout(persistTimer)
     if (orderPersistTimer) {
       clearTimeout(orderPersistTimer)
       orderPersistTimer = null

@@ -36,8 +36,7 @@
       <div
         v-if="$slots.toolbar"
         class="viewer-toolbar"
-        :class="{ 'is-hidden': !showBottomHighlight }"
-      >
+        >
         <slot name="toolbar" />
       </div>
       <div v-if="total > 1" class="viewer-counter">

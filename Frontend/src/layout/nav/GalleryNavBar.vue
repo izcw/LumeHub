@@ -103,8 +103,19 @@
                   aria-label="网格布局"
                   @click="masonryLayoutStore.setGalleryLayoutMode('grid')"
                 />
+                <Button
+                  class="layout-mode-btn"
+                  :class="{ 'is-active': masonryLayoutStore.galleryLayoutMode === 'card' }"
+                  width="40px"
+                  icon-only
+                  :icon-src="cardSwitchingIcon"
+                  title="卡牌切换"
+                  aria-label="卡牌切换"
+                  @click="masonryLayoutStore.setGalleryLayoutMode('card')"
+                />
               </ButtonGroup>
               <ToolbarSelect
+                v-if="masonryLayoutStore.galleryLayoutMode !== 'card'"
                 ref="columnPickerRef"
                 :open="columnMenuOpen"
                 :model-value="columnSelect"
@@ -186,6 +197,7 @@ import columnIcon from '@/assets/icon/column.svg'
 import editIcon from '@/assets/icon/edit.svg'
 import flowIcon from '@/assets/icon/Flow.svg'
 import gridIcon from '@/assets/icon/Grid.svg'
+import cardSwitchingIcon from '@/assets/icon/card-switching.png'
 import moreIcon from '@/assets/icon/more.svg'
 
 const route = useRoute()
@@ -392,6 +404,13 @@ watch(
   () => showGalleryNavCustomize.value,
   (ok) => {
     if (!ok) dragSortEditStore.setEnabled(false)
+  },
+)
+
+watch(
+  () => masonryLayoutStore.galleryLayoutMode,
+  (mode) => {
+    if (mode === 'card') columnMenuOpen.value = false
   },
 )
 

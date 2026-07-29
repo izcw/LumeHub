@@ -672,6 +672,7 @@ $ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
       > a.nav-link__item {
         flex: 1;
         min-width: 0;
+        position: relative;
       }
     }
 
@@ -749,6 +750,12 @@ $ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
       display: block;
       object-fit: contain;
       opacity: 0.55;
+      
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      margin: auto;
     }
 
     &__sheet a {

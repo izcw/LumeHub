@@ -1,1 +1,0 @@
-import{M as e,Y as t,g as n,r,w as i}from"./pinia-DXkkLwc5.js";import{V as a}from"./index-DDLKW_3x.js";import{t as o}from"./GalleryView-CDCFfWDT.js";var s=i({__name:`index`,setup(i){let{homeFolderKey:s}=r(a());return(r,i)=>(e(),n(o,{"folder-key":t(s)},null,8,[`folder-key`]))}});export{s as default};

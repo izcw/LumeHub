@@ -1,5 +1,5 @@
 export type ApiLayout = {
-  mode: 'masonry' | 'grid'
+  mode: 'masonry' | 'grid' | 'card'
   columns: 'auto' | '1' | '2' | '3' | '4' | '5' | '6'
 }
 

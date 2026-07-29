@@ -47,13 +47,29 @@
       @copy-link="$emit('copy-link', $event)"
       @aspect-hw="(id, hw) => $emit('aspect-hw', id, hw)"
     />
+    <GalleryCardSwitchingLayout
+      v-else-if="layoutMode === 'card' && displayList.length > 0"
+      key="gallery-card-switching"
+      :items="displayList"
+      :show-admin-actions="showGalleryAdminActions"
+      :gallery-folder-key="galleryFolderKey"
+      :get-item-style="getItemStyle"
+      @card-click="(event, index) => $emit('card-click', event, index)"
+      @delete="$emit('delete', $event)"
+      @transfer="$emit('transfer', $event)"
+      @edit="$emit('edit', $event)"
+      @view="$emit('view', $event)"
+      @download="$emit('download', $event)"
+      @copy-link="$emit('copy-link', $event)"
+      @aspect-hw="(id, hw) => $emit('aspect-hw', id, hw)"
+    />
   </div>
 
   <nav v-if="showPagination" class="pagination-bar" aria-label="图片分页">
     <span v-if="orderPersisting" class="order-persist-hint">排序保存中…</span>
     <span v-else-if="orderPersistHint" class="order-persist-hint">{{ orderPersistHint }}</span>
     <ToolbarSelect
-      v-if="dragSortEditEnabled"
+      v-if="dragSortEditEnabled && layoutMode !== 'card'"
       ref="pageSizePickerRef"
       :open="pageSizeMenuOpen"
       :model-value="pageSizeSelectValue"
@@ -83,6 +99,7 @@ import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import GalleryMasonryLayout from '@/components/gallery/GalleryMasonryLayout.vue'
 import GalleryGridLayout from '@/components/gallery/GalleryGridLayout.vue'
+import GalleryCardSwitchingLayout from '@/components/gallery/GalleryCardSwitchingLayout.vue'
 import type { GalleryDisplayItem, GalleryItemStyleFn } from '@/components/gallery/types'
 import type { MasonryPlacementMap } from '@/api/gallery'
 import Pagination from '@/components/shared-ui/Pagination.vue'
@@ -196,7 +213,7 @@ defineExpose({
   justify-content: center;
   flex-wrap: wrap;
   gap: var(--index-gallery-gap);
-  padding: clamp(12px, 3vw, 16px) var(--index-gallery-gap) clamp(24px, 6vw, 38px);
+  padding: 30px var(--index-gallery-gap) clamp(24px, 6vw, 38px);
   color: #2f2f2f;
   font-size: 13px;
 }
