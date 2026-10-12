@@ -16,6 +16,21 @@
       "permissions": [
         "manage_layout",
         "manage_accounts"
+      ],
+      "passkeys": [
+        {
+          "id": "9qWaZtfufI8Tyb4xXMACIAUiihk",
+          "label": "iPhone 通行证",
+          "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaCwPTaKJ34V8AG4k2ftYzoSiHc4D9KY-9aFtswZr0Lyx6Q0GO8TIJ7x0Dlir-jmERwOKP3enuPA6c7EflJEzbg",
+          "algorithm": -7,
+          "signCount": 0,
+          "transports": [
+            "hybrid",
+            "internal"
+          ],
+          "createdAt": "2026-05-30T14:18:39Z",
+          "lastUsedAt": "2026-08-31T02:48:23Z"
+        }
       ]
     }
   ]
